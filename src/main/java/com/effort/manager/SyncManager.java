@@ -199,7 +199,7 @@ public class SyncManager {
 	List<Payment> payments = new ArrayList<Payment>();
 	Map<Long, List<FormField>> oldFormFieldsMap = new HashMap<Long, List<FormField>>();
 	Long paymentsCurrentTime = Api.getCurrentTimeInUTCLong();
-	if (payments != null && payments.size() > 0) {
+	/*if (payments != null && payments.size() > 0) {
 		for (Payment payment : payments) {
 			Api.convertDateTimesToGivenType(payment, DateConversionType.XSD_TO_STADARD, "createdTime",
 					"modifiedTime");
@@ -212,7 +212,7 @@ public class SyncManager {
 				extraDao.updatePaymentByClientId(payment);
 		}
 	}
-
+*/
 	if (constants.isPrintLogs())
 		Log.info(this.getClass(), "getFormContainer-paymentsCurrentTime End. Time taken to process for empId "
 				+ empId + " : " + (Api.getCurrentTimeInUTCLong() - paymentsCurrentTime));

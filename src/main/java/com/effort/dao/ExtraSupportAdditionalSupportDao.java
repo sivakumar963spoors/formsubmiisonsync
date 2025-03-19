@@ -24,9 +24,12 @@ import com.effort.entity.FormSectionField;
 import com.effort.entity.FormSectionFieldSpec;
 import com.effort.entity.FormSectionFieldSpecsExtra;
 import com.effort.entity.FormSpec;
+import com.effort.entity.FormSubmissionInstanceConfiguration;
+import com.effort.entity.FormSubmissionInstanceStatus;
 import com.effort.entity.OfflineListUpdateConfiguration;
 import com.effort.entity.RichTextFormField;
 import com.effort.entity.RichTextFormSectionField;
+import com.effort.entity.WebUser;
 import com.effort.entity.WorkOnDemandMapping;
 import com.effort.manager.WebExtensionManager;
 import com.effort.settings.Constants;
@@ -382,6 +385,86 @@ public class ExtraSupportAdditionalSupportDao {
 			return workOnDemandMapping;
 		}
 		
+		
+		public int deleteRichTextFormFields(long formId) {
+			return jdbcTemplate.update(Sqls.DELETE_RICH_TEXT_FORM_FIELDS_BY_FORMID,
+					new Object[] { formId });
+		}
+		
+		
+		public FormSubmissionInstanceConfiguration getFormSubmissionInstanceConfigurationByFormUniqueId(
+				String uniqueId) {
+			try
+			{
+				return jdbcTemplate.queryForObject(Sqls.SELECT_FORM_SUBMISSION_INSTANCE_CONFIGURATION_UNIQUEID,
+					new Object[] {uniqueId,uniqueId}, new BeanPropertyRowMapper<FormSubmissionInstanceConfiguration>(
+							FormSubmissionInstanceConfiguration.class));
+			}
+			catch(Exception e)
+			{
+				//Log.info(getClass(), "getFormSubmissionInstanceConfigurationByFormInstanceUniqueId() // Exception : "+e.getMessage(), e);
+				return null;
+				
+				
+			}
+		}
+		
+		public FormSubmissionInstanceStatus getFormSubmissionInstanceStatusByEmpId(
+				Long formSubmissionInstanceConfigurationId, Long empId, int status) {
+			
+			try {
+				return jdbcTemplate.queryForObject(
+						Sqls.SELECT_FORM_SUBMISSION_INSTANCE_STATUS_BY_EMPID_AND_CONFIGID,
+						new Object[] { formSubmissionInstanceConfigurationId ,empId,status }, new BeanPropertyRowMapper<FormSubmissionInstanceStatus>(
+								FormSubmissionInstanceStatus.class));
+			} catch (Exception e) {
+				//StackTraceElement[] stackTrace = e.getStackTrace();
+				//getWebExtensionManager().sendExceptionDetailsMail("Exception Occured in getFormSubmissionInstanceStatusByEmpId while creating form",e.toString(),stackTrace,0);
+				return null;
+			}
+			
+		}
+		
+		public void insertIntoFormSubmissionInstanceStatus(long formId, Long formSubmissionInstanceConfigurationId,
+				WebUser webUser) {
+			KeyHolder keyHolder = new GeneratedKeyHolder();
+
+			jdbcTemplate.update(new PreparedStatementCreator() {
+				
+				@Override
+				public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
+
+					PreparedStatement ps = connection.prepareStatement(Sqls.INSERT_INTO_FORM_SUBMISSION_INSTANCE_STATUS,
+							Statement.RETURN_GENERATED_KEYS);
+
+					ps.setLong(1,formSubmissionInstanceConfigurationId);
+					ps.setLong(2,formId);
+					ps.setLong(3,webUser.getEmpId());
+					ps.setString(4, Api.getToday());
+					ps.setInt(5, FormSubmissionInstanceStatus.STATUS_OPEN);
+					ps.setLong(6,webUser.getCompanyId());
+					ps.setString(7, Api.getDateTimeInUTC(new Date(System.currentTimeMillis())));
+					ps.setString(8, Api.getDateTimeInUTC(new Date(System.currentTimeMillis())));
+					return ps;
+				}
+			}, keyHolder); 
+			
+		}
+
+		public void updateFormSubmissionInstanceStatus(long formId, Long formSubmissionInstanceStatusId) {
+			String sql = Sqls.UPDATE_FORM_SUBMISSION_INSTANCE_STATUS_CLOSE_FORM_ID;
+
+			try {
+				jdbcTemplate.update(sql, new Object[] { formId, FormSubmissionInstanceStatus.STATUS_CLOSED,
+						Api.getDateTimeInUTC(new Date(System.currentTimeMillis())), formSubmissionInstanceStatusId
+
+				});
+
+			} catch (Exception e) {
+				e.printStackTrace();
+
+			}
+		}
 		public List<AutoGenereteSequenceSpecConfiguarationField> getAutoGenereteSequenceSpecConfiguarationByFormSpecId(
 				String uniqueId) {
 			
@@ -395,5 +478,20 @@ public class ExtraSupportAdditionalSupportDao {
 			}
 			return autoGenereteSequenceSpecConfiguarationFields;
 			
+		}
+		
+		public int deleteRichTextFormSectionFields(long formId) {
+			return jdbcTemplate.update(Sqls.DELETE_RICH_TEXT_FORM_SECTION_FIELDS_BY_FORMID,
+					new Object[] { formId });
+		}
+		
+		public String getWorkIdByActionFormId(long formId) {
+			try {
+	            String sql = Sqls.SELECT_WORK_ID_BY_ACTION_FORM_ID;
+	            return jdbcTemplate.queryForObject(sql,new Object[] {formId}, String.class);
+			} catch (Exception e) {
+				Log.error(this.getClass(), "getWorkIdByActionFormId() // Exception: "+ e);
+				return "";
+			}
 		}
 }

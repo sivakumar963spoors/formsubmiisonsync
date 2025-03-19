@@ -723,4 +723,17 @@ public class WorkFlowExtraDao {
 			return id;
 			
 		  }
+		 
+		 public List<WorkFlowFormStatusHistory> getWorkFlowFormStatusHistories(
+					Long formId) {
+				
+				return jdbcTemplate.query(
+							Sqls.SELECT_WORK_FLOW_FORM_STATUS_HISTORY,
+							new Object[] { formId },
+							new BeanPropertyRowMapper<WorkFlowFormStatusHistory>(
+									WorkFlowFormStatusHistory.class));
+
+				
+			}
+
 }

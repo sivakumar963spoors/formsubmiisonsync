@@ -24,6 +24,7 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 
 
 import com.effort.context.AppContext;
+import com.effort.entity.CustomEntityOnDemandMapping;
 import com.effort.entity.CustomEntityRequisitionJmsMessageStatus;
 import com.effort.entity.CustomerAutoFilteringCritiria;
 import com.effort.entity.CustomerOnDemandMapping;
@@ -37,11 +38,17 @@ import com.effort.entity.FormField;
 import com.effort.entity.FormFieldSpec;
 import com.effort.entity.FormSectionField;
 import com.effort.entity.FormSectionFieldSpec;
+import com.effort.entity.MobileNumberVerification;
+import com.effort.entity.ProcessJmsMessageStatus;
 import com.effort.entity.RemainderFieldsMap;
 import com.effort.entity.ReportField;
 import com.effort.entity.RichTextFormField;
 import com.effort.entity.RichTextFormSectionField;
+import com.effort.entity.StartWorkStopWorkLocations;
+import com.effort.entity.WebUser;
+import com.effort.entity.Work;
 import com.effort.entity.WorkFlowFormStatus;
+import com.effort.entity.WorkOnDemandMapping;
 import com.effort.entity.WorkRequisitionJmsMessageStatus;
 import com.effort.entity.WorkflowStage;
 import com.effort.settings.Constants;
@@ -792,5 +799,245 @@ private ExtraSupportAdditionalDao getExtraSupportAdditionalDao(){
 			return 0l;
 		}
 
+	}
+	
+	public Long insertIntoProcessJmsMessageStatus(ProcessJmsMessageStatus processJmsMessageStatus, int status) {
+		try {
+			KeyHolder keyHolder = new GeneratedKeyHolder();
+			jdbcTemplate.update(new PreparedStatementCreator() {
+
+				public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
+					PreparedStatement ps = connection.prepareStatement(Sqls.INSERT_INTO_PROCESS_JMS_MESSAGE_STATUS,
+							Statement.RETURN_GENERATED_KEYS);
+
+					ps.setInt(1, processJmsMessageStatus.getType());
+					ps.setLong(2, processJmsMessageStatus.getId());
+					ps.setLong(3, processJmsMessageStatus.getCompanyId());
+					ps.setLong(4, processJmsMessageStatus.getEmpId());
+					ps.setInt(5, processJmsMessageStatus.getChangeType());
+					ps.setLong(6, processJmsMessageStatus.getEntityId());
+					ps.setBoolean(7, processJmsMessageStatus.getByClient());
+					ps.setInt(8, status);
+					ps.setString(9, Api.getDateTimeInUTC(new Date(System.currentTimeMillis())));
+					ps.setString(10, Api.getDateTimeInUTC(new Date(System.currentTimeMillis())));
+					ps.setBoolean(11, processJmsMessageStatus.isMarutiCompany());
+					return ps;
+				}
+			}, keyHolder);
+
+			long id = keyHolder.getKey().longValue();
+			return id;
+		} catch (Exception e) {
+			return 0l;
+		}
+
+	}
+	
+	public Long verifyMobileNumberAndOtp(
+			MobileNumberVerification mobileNumberVerification) {
+		String sql = Sqls.VERIFY_MOBILE_NUMBER_AND_OTP;
+		
+		String isValidOtp = "";
+		try{
+		isValidOtp =  jdbcTemplate.queryForObject(
+				sql, new Object[] {
+						mobileNumberVerification.getId(),
+						mobileNumberVerification.getPhoneNo(),
+						mobileNumberVerification.getOtp()
+				},String.class);
+		}catch(Exception e){
+			return (long) MobileNumberVerification.INVALID_OTP;
+		}
+		if(isValidOtp.equals("0"))
+			return (long) MobileNumberVerification.OTP_EXPIRED;
+		else
+			return (long) MobileNumberVerification.OTP_VERIFIED;
+	}
+	
+
+public WorkOnDemandMapping getWorkOnDemandForListScreen(String formSpecUniqueId, Integer companyId) {
+	
+	try{
+	return jdbcTemplate
+			.queryForObject(Sqls.SELECT_WORK_ON_DEMAND_MAPPING_BY_UNIQUEID_FOR_LIST.replace(":formSpecUniqueId", formSpecUniqueId)
+					.replace(":companyId", companyId+""),
+					new Object[] {},
+					new BeanPropertyRowMapper<WorkOnDemandMapping>(
+							WorkOnDemandMapping.class));
+	}
+		catch(Exception e){
+			return null;
+		}
+	}
+
+public int insertWebLocations(long locationId, String browserInfo,String ipAddress) {
+	return jdbcTemplate.update(
+			Sqls.INSERT_WEB_LOCATON,
+			new Object[] {
+					locationId,
+					browserInfo,
+					ipAddress});
+}
+
+
+public void modifyWorkAssignee(Work work, Long modifiedBy,WebUser webUser) {
+	try {
+		if (work.getAssignTo() != null) {
+			jdbcTemplate.update(Sqls.UPDATE_WORK_ASSIGNMENT_DATA, new Object[] { work.getWorkId(),
+					work.getAssignTo(), Api.getDateTimeInUTC(new Date(System.currentTimeMillis())),modifiedBy });
+		}
+	} catch (Exception e) {
+
+	}
+	Api.populateLogText(webUser,null);
+	int updatedCount = getAuditDao().auditWorkAssignmentDataAuditLogs(work.getWorkId(), webUser,work.getSourceOfModification());
+	Log.info(getClass(), "modifyWorkAssignee() // workId = "+work.getWorkId()+" updatedCount = "+updatedCount);
+}
+
+public void updateStopWorkLocationForStartWorkLocation(StartWorkStopWorkLocations startWorkStopWorkLocation, long id) {
+	try
+	{
+		String sql = Sqls.UPDATE_STOPWORK_LOCATION_FOR_STARTWORK_LOCATION_THROUGH_WEBLITE;
+		jdbcTemplate.update(sql, new Object[]{
+				startWorkStopWorkLocation.getStopWorkLocationId(),
+				startWorkStopWorkLocation.getStopWorkLocationTime(),
+				startWorkStopWorkLocation.getSignOutSource(),
+				startWorkStopWorkLocation.getSignOutFormId(),
+				startWorkStopWorkLocation.getAutoStopWork(),
+				Api.getDateTimeInUTC(new Date(System.currentTimeMillis())),
+				id });
+	}
+	catch(Exception e )
+	{
+		Log.info(this.getClass(), "error in updateAutoSignedOut() >> "+e.toString());
+		e.printStackTrace();
+	}
+}
+public long insertStartWorkStopWorkLocations(final StartWorkStopWorkLocations startWorkStopWorkLocation, 
+		final long empId,final int companyId) {
+			KeyHolder keyHolder = new GeneratedKeyHolder();
+
+			jdbcTemplate.update(new PreparedStatementCreator() {
+
+				@Override
+				public PreparedStatement createPreparedStatement(
+						Connection connection) throws SQLException {
+
+					PreparedStatement ps = connection.prepareStatement(
+							Sqls.INSERT_START_WORK_STOP_WORK_LOCATIONS_FOR_SYNC,
+							Statement.RETURN_GENERATED_KEYS);
+					ps.setString(1, startWorkStopWorkLocation.getStartWorkLocationId());
+					ps.setString(2, startWorkStopWorkLocation.getStartWorkLocationTime());
+					if(!Api.isEmptyString(startWorkStopWorkLocation.getStartWorkReasonId()) && !"null".equalsIgnoreCase(startWorkStopWorkLocation.getStartWorkReasonId()))
+					{
+						ps.setString(3, startWorkStopWorkLocation.getStartWorkReasonId());
+					}else{
+						ps.setNull(3, Types.BIGINT);
+					}
+					ps.setString(4, startWorkStopWorkLocation.getStartWorkReason());
+					ps.setString(5, startWorkStopWorkLocation.getStopWorkLocationId());
+					ps.setString(6, startWorkStopWorkLocation.getStopWorkLocationTime());
+					ps.setString(7, startWorkStopWorkLocation.getClientCreatedTime());
+					ps.setString(8, startWorkStopWorkLocation.getClientModifiedTime());
+					ps.setString(9, Api.getDateTimeInUTC(new Date(System
+							.currentTimeMillis())));
+					ps.setString(10, Api.getDateTimeInUTC(new Date(System
+							.currentTimeMillis())));
+					ps.setString(11, startWorkStopWorkLocation.getClientSideId());
+					ps.setString(12, startWorkStopWorkLocation.getCustomerId());
+					ps.setString(13,startWorkStopWorkLocation.getClientCode());
+					ps.setString(14,companyId+"");
+					ps.setString(15, empId+"");
+					ps.setInt(16, startWorkStopWorkLocation.getAutoStartWork() == null ? 0 : startWorkStopWorkLocation.getAutoStartWork());
+					ps.setInt(17, startWorkStopWorkLocation.getAutoStopWork() == null ? 0 : startWorkStopWorkLocation.getAutoStopWork());
+					if(startWorkStopWorkLocation.getStartWorkMediaId() != null)
+						ps.setLong(18, startWorkStopWorkLocation.getStartWorkMediaId());
+					else
+						ps.setNull(18, Types.BIGINT);
+					if(startWorkStopWorkLocation.getSignInFormId() != null)
+					{
+						ps.setLong(19,startWorkStopWorkLocation.getSignInFormId());
+					}
+					else
+					{
+						ps.setNull(19, Types.BIGINT);
+					}
+					if(startWorkStopWorkLocation.getSignOutFormId() != null)
+					{
+						ps.setLong(20,startWorkStopWorkLocation.getSignOutFormId());
+					}
+					else
+					{
+						ps.setNull(20, Types.BIGINT);
+					}
+					ps.setInt(21,startWorkStopWorkLocation.getSignInSource());
+					if(startWorkStopWorkLocation.getCheckInId() != null)
+					{
+						ps.setLong(22,startWorkStopWorkLocation.getCheckInId());
+					}
+					else
+					{
+						ps.setNull(22, Types.BIGINT);
+					}
+					if(startWorkStopWorkLocation.getCheckOutId() != null)
+					{
+						ps.setLong(23,startWorkStopWorkLocation.getCheckOutId());
+					}
+					else
+					{
+						ps.setNull(23, Types.BIGINT);
+					}
+					return ps;
+				}
+			}, keyHolder);
+
+			long id = keyHolder.getKey().longValue();
+			startWorkStopWorkLocation.setId(id);
+
+			return id;
+		}
+
+public EmployeeOnDemandMapping getEmployeeOnDemandForListScreen(String formSpecUniqueId, Integer companyId) {
+	
+	try{
+	return jdbcTemplate
+			.queryForObject(Sqls.SELECT_EMPLOYEE_ON_DEMAND_MAPPING_BY_UNIQUEID_FOR_LIST.replace(":formSpecUniqueId", formSpecUniqueId)
+					.replace(":companyId", companyId+""),
+					new Object[] {},
+					new BeanPropertyRowMapper<EmployeeOnDemandMapping>(
+							EmployeeOnDemandMapping.class));
+	}
+		catch(Exception e){
+			return null;
+		}
+	}
+public CustomEntityOnDemandMapping getCustomEntityOnDemandForListScreen(String formSpecUniqueId, Integer companyId) {
+	
+	try{
+	return jdbcTemplate
+			.queryForObject(Sqls.SELECT_CUSTOMENTITY_ON_DEMAND_MAPPING_BY_UNIQUEID_FOR_LIST.replace(":formSpecUniqueId", formSpecUniqueId)
+					.replace(":companyId", companyId+""),
+					new Object[] {},
+					new BeanPropertyRowMapper<CustomEntityOnDemandMapping>(
+							CustomEntityOnDemandMapping.class));
+	}
+		catch(Exception e){
+			return null;
+		}
+	}
+
+public CustomerOnDemandMapping getCustomerOnDemandForListScreen(String formSpecUniqueId, Integer companyId) {
+	
+	try{
+	return jdbcTemplate
+			.queryForObject(Sqls.SELECT_CUSTOMER_ON_DEMAND_MAPPING_BY_UNIQUEID_FOR_LIST.replace(":formSpecUniqueId", formSpecUniqueId)
+					.replace(":companyId", companyId+""),
+					new Object[] {},
+					new BeanPropertyRowMapper<CustomerOnDemandMapping>(
+							CustomerOnDemandMapping.class));
+	}
+		catch(Exception e){
+			return null;
+		}
 	}
 }

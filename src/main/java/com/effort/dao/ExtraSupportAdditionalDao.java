@@ -20,6 +20,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.effort.dao.rollbackhandler.ClientIdCallBackHandler;
+import com.effort.entity.CompanyFont;
 import com.effort.entity.CompanyRestApis;
 import com.effort.entity.CustomEntityOnDemandMapping;
 import com.effort.entity.EmployeeFilteringCritiria;
@@ -353,5 +354,12 @@ public void insertWorkFlowForCdsgStockUpdate(Long entityId , long companyId, int
 		String sql = Sqls.SELECT_FORMSPEC;
 		return jdbcTemplate.queryForObject(sql, new Object[] {
 				formSpecId},new BeanPropertyRowMapper<FormSpec>(FormSpec.class));
+	}
+	
+	public CompanyFont getCompanyFont(long fontId) {
+		CompanyFont companyFont = jdbcTemplate.queryForObject(
+				Sqls.SELECT_COMPANY_FONT, new Object[] { fontId },
+				new BeanPropertyRowMapper<CompanyFont>(CompanyFont.class));
+		return companyFont;
 	}
 }

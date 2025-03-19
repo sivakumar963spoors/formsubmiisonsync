@@ -33,8 +33,10 @@ import com.effort.entity.CustomEntityRequisitionJmsMessageStatus;
 import com.effort.entity.CustomerRequisitionJmsMessageStatus;
 import com.effort.entity.Employee;
 import com.effort.entity.EmployeeRequisitionJmsMessageStatus;
+import com.effort.entity.ExtraProperties;
 import com.effort.entity.FlatDataTableConfiguration;
 import com.effort.entity.Form;
+import com.effort.entity.FormAndField;
 import com.effort.entity.FormCustomEntities;
 import com.effort.entity.FormCustomers;
 import com.effort.entity.FormField;
@@ -45,6 +47,9 @@ import com.effort.entity.FormSectionFieldSpec;
 import com.effort.entity.FormSpec;
 import com.effort.entity.JmsMessage;
 import com.effort.entity.RichTextFormField;
+import com.effort.entity.Settings;
+import com.effort.entity.WebUser;
+import com.effort.entity.Work;
 import com.effort.entity.WorkRequisitionJmsMessageStatus;
 import com.effort.exception.EffortError;
 import com.effort.settings.Constants;
@@ -480,8 +485,59 @@ private ExtendedDao getExtendedDao(){
 
 	}
 	
-		
-    
+	public void canProcessEmpMasterMappingConfigurationWhenMasterModified(Long masterId,Long masterFormId,Long masterSpecId,Integer eventType,
+			List<FormField> updatedFields,  WebUser webUser) {
+		EmpMasterMappingConfiguration empMasterMappingConfiguration = getEmpMasterMappingConfiguration(webUser.getCompanyId(),eventType,masterSpecId);
+		if(empMasterMappingConfiguration == null) {
+			return;
+		}
+		if(updatedFields!=null && !updatedFields.isEmpty()) {
+			Map<String,FormField> uniqueIdAndFieldMap = (Map) Api.getMapFromList(updatedFields, "uniqueId");
+			List<EmpMasterFieldsMapping> empMasterFieldsMappingList = empMasterMappingConfiguration.getEmpMasterFieldsMappingList();
+			for (EmpMasterFieldsMapping empMasterFieldMapping : empMasterFieldsMappingList) {
+				String oldFieldValue = getMasterFormFieldValueByFormIdAndFieldUniqueId(masterFormId,
+								empMasterFieldMapping.getMasterFieldUniqueId());
+				
+				
+				FormField formField = uniqueIdAndFieldMap.getOrDefault(empMasterFieldMapping.getMasterFieldUniqueId(),null);
+				if(Api.isEmptyString(oldFieldValue) && formField != null && !Api.isEmptyString(formField.getFieldValue())) {
+					insertIntoEmpMasterMappingStatus(webUser.getCompanyId().longValue(), 
+							masterId,null, eventType,webUser.getEmpId());
+					return;
+				}
+				if(!Api.isEmptyString(oldFieldValue) && (formField != null && !Api.isEmptyString(formField.getFieldValue()))) {
+					if(Constants.FORM_FIELD_TYPE_TEXT == empMasterFieldMapping.getFieldDataType() 
+							|| Constants.FORM_FIELD_TYPE_LIST == empMasterFieldMapping.getFieldDataType() ) {
+						if(!oldFieldValue.equals(formField.getFieldValue())) {
+							insertIntoEmpMasterMappingStatus(webUser.getCompanyId().longValue(), 
+									masterId,null, eventType,webUser.getEmpId());
+							return;
+						}
+					}else {
+						List<String> oldValues = Api.csvToList(oldFieldValue);
+						List<String> newValues = Api.csvToList(formField.getFieldValue());
+						if(oldValues.retainAll(newValues)) {
+							insertIntoEmpMasterMappingStatus(webUser.getCompanyId().longValue(), 
+									masterId,null, eventType,webUser.getEmpId());
+							return;
+						}
+					}
+				}
+			}
+		}
+		return;
+	}	
+	public String getCompanySettingValueFromSettingsTable(int companyId,String key){
+  		
+  		//key = Api.processStringValuesList(Api.csvToList(key));
+  		Settings setting = extraSupportAdditionalDao.getSettingValueByKeyAndCompanyId(key,companyId);
+  		if(setting == null) {
+  			return null;
+  		}
+  		//Settings setting = webSettings.get(0);
+  		
+  		return setting.getValue();
+  	}
 	
  	public void updateFlatTableDataStatusForForms(Form form, int companyId) {
     	Log.info(getClass(), "inside updateFlatTableDataStatusForForms() companyId :- "+companyId+" formId :- "+form.getFormId()+" uniqueId :- "+Api.makeEmptyIfNull(form.getUniqueId()));
@@ -519,6 +575,109 @@ private ExtendedDao getExtendedDao(){
 		return false;
 	}
  	
+ 	public void insertOrUpdateWorkStatusHistory(
+ 	  		  ExtraProperties extraProperties,Form form,WebUser webUser,Work work,FormAndField formAndField) {
+ 	  	  
+ 	  	  
+ 	  	  WorkStatusHistory workStatusHistoryAleadyExisting = extraSupportDao.getWorkStatusHistoryByActionSpecIdAndFormId(
+ 						Long.parseLong(extraProperties.getWorkActionSpecId()),work.getWorkId(),form.getFormId());
+ 	  	  
+ 	  	String auditType = "";
+ 		if(formAndField.getSourceOfAction() != null && formAndField.getSourceOfAction() == Work.WEB) {
+ 			auditType = "Web";
+ 		}if(formAndField.getSourceOfAction() != null && formAndField.getSourceOfAction() == Work.API) {
+ 			auditType = "Api";
+ 		}
+ 	  	FormLocation formLocation = extraDao
+ 				.getLatestLocationIdForFormIdIn(form.getFormId());
+ 	  	  if(workStatusHistoryAleadyExisting == null) {
+ 	  		  if(form.getDraftForm() == 1) {
+ 						String time = Api
+ 								.getDateTimeInUTC(new Date(System.currentTimeMillis()));
+ 						WorkStatusHistory workStatusHistory = new WorkStatusHistory();
+ 						// workStatusHistory.setWorkStatusId(workStatus.getWorkStatusId());
+ 						workStatusHistory.setFormId(form.getFormId());
+ 						workStatusHistory.setModifiedBy(webUser.getEmpId());
+ 						workStatusHistory.setWorkSpecId(work.getWorkSpecId());
+ 						workStatusHistory.setWorkId(Long.parseLong(extraProperties.getWorkId()));
+ 						workStatusHistory.setWorkActionSpecId(Long.parseLong(extraProperties.getWorkActionSpecId()));
+ 						workStatusHistory.setWorkStatusCreatedTime(time);
+ 						workStatusHistory.setWorkStatusModifiedTime(time);
+ 						workStatusHistory.setWorkStatusCreatedTime(time);
+ 						workStatusHistory.setWorkStatuHistoryCreatedTime(time);
+ 						if (formLocation != null) {
+ 						workStatusHistory.setLocationId(formLocation.getLocationId());
+ 						}
+ 						workStatusHistory.setDraft(true);
+ 						
+ 						extraDao.insertWorkStatusHistory(workStatusHistory, null);
+ 						
+ 						// Handling previousactionperformed
+ 						boolean resolveActionableMethod = false;
+ 						resolveActionableMethod = getWebExtensionManager().validateAndResolveActionAssignments(
+ 								workStatusHistory.getWorkSpecId(), workStatusHistory.getWorkActionSpecId());
+ 						if (resolveActionableMethod) {
+ 							getWebExtensionManager().resolveActionAssignments(work.getWorkSpecId(), webUser, workStatusHistory);
+ 						}
+ 						
+ 					    workFlowExtraDao.updateWorkActionExcalatedEmpIds(Long.parseLong(extraProperties.getWorkId()),Long.parseLong(extraProperties.getWorkActionSpecId()));
+ 					}
+ 					else {
+ 						
+ 						if(extraProperties!=null && extraProperties.isAddJmsMessages()) {
+ 							List<JmsMessage> jmsMessages = new ArrayList<JmsMessage>();
+ 							webManager.changeWorkStatus(Long.parseLong(extraProperties.getWorkId()),
+ 									extraProperties.getWorkActionSpecId(),
+ 									form.getFormId(), webUser.getCompanyId(),
+ 									webUser.getEmpId(), formAndField.isWorkCompleted(),null,auditType,null,null,jmsMessages);
+ 							extraProperties.setJmsMessages(jmsMessages);
+ 						}else {
+ 							webManager.changeWorkStatus(Long.parseLong(extraProperties.getWorkId()),
+ 									extraProperties.getWorkActionSpecId(),
+ 									form.getFormId(), webUser.getCompanyId(),
+ 									webUser.getEmpId(), formAndField.isWorkCompleted(),null,auditType,null,null,null);
+ 						}
+ 						
+ 						
+ 					}
+ 	  	  }else {
+ 	  		  if(form.getDraftForm() == 1) {
+ 						String time = Api
+ 								.getDateTimeInUTC(new Date(System.currentTimeMillis()));
+ 						WorkStatusHistory workStatusHistory = new WorkStatusHistory();
+ 						// workStatusHistory.setWorkStatusId(workStatus.getWorkStatusId());
+ 						workStatusHistory.setFormId(form.getFormId());
+ 						workStatusHistory.setModifiedBy(webUser.getEmpId());
+ 						workStatusHistory.setWorkSpecId(work.getWorkSpecId());
+ 						workStatusHistory.setWorkId(Long.parseLong(extraProperties.getWorkId()));
+ 						workStatusHistory.setWorkActionSpecId(Long.parseLong(extraProperties.getWorkActionSpecId()));
+ 						workStatusHistory.setWorkStatusCreatedTime(time);
+ 						workStatusHistory.setWorkStatusModifiedTime(time);
+ 						workStatusHistory.setWorkStatusCreatedTime(time);
+ 						workStatusHistory.setWorkStatuHistoryCreatedTime(time);
+ 						workStatusHistory.setDraft(true);
+ 						extraSupportAdditionalDao.updateWorkStatusHistory(workStatusHistory, null);
+ 					}
+ 					else {
+ 						if(extraProperties!=null && extraProperties.isAddJmsMessages()) {
+ 							List<JmsMessage> jmsMessages = new ArrayList<JmsMessage>();
+ 							getWebAdditionalSupportManager().changeWorkStatus(Long.parseLong(extraProperties.getWorkId()),
+ 									extraProperties.getWorkActionSpecId(),
+ 									form.getFormId(), webUser.getCompanyId(),
+ 									webUser.getEmpId(), formAndField.isWorkCompleted(),null,jmsMessages);
+ 							extraProperties.setJmsMessages(jmsMessages);
+ 						}else {
+ 							getWebAdditionalSupportManager().changeWorkStatus(Long.parseLong(extraProperties.getWorkId()),
+ 									extraProperties.getWorkActionSpecId(),
+ 									form.getFormId(), webUser.getCompanyId(),
+ 									webUser.getEmpId(), formAndField.isWorkCompleted(),null,null);
+ 						}
+ 						
+ 					}
+ 	  	  }
+ 	    }
+
+ 	
  	public boolean isCompanyRestApiExistForType(int type, String companyId)
 	{
 		List<CompanyRestApis> companyRestApis = extraSupportAdditionalDao.getCompanyRestApiDataWithCompanyId(type, companyId);
@@ -530,5 +689,9 @@ private ExtendedDao getExtendedDao(){
 	
 	public FormSpec getFormSpecByFormSpecId(long formSpecId) {
 		return extraSupportAdditionalDao.getFormSpecByFormSpecId(formSpecId);
+	}
+	
+	public Form getMasterForm(Long formId) {
+		return extraSupportAdditionalDao.getMasterForm(formId);
 	}
 }

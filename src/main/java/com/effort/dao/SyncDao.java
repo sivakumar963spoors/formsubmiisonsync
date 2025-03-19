@@ -141,6 +141,15 @@ public class SyncDao {
 				Log.info(getClass(), "getFormSectionFieldsForSync() // time taken to get FormSectionFields from DB  : "+(System.currentTimeMillis()- currentTime)+" ms", debugLogEnable, null);
 			}
 
-			
-}
+			return new ArrayList<FormSectionField>();
+		}
+	 
+	 public List<FormSectionField> getMasterFormSectionFieldsForForm(long formId) {
+			List<FormSectionField> formSectionFields = jdbcTemplate.query(
+					Sqls.SELECT_MASTER_FORM_SECTION_FIELD_FOR_FORM,
+					new Object[] { formId },
+					new BeanPropertyRowMapper<FormSectionField>(
+							FormSectionField.class));
+			return formSectionFields;
+		}
 }

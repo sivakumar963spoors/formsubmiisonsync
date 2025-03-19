@@ -9,13 +9,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.web.multipart.commons.CommonsMultipartFile;
+
 
 import com.effort.util.Api;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty.Access;
+
+
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class FormSectionField implements Serializable {
@@ -61,7 +63,7 @@ public class FormSectionField implements Serializable {
 	
 	private boolean additionalFieldsInfo;
 	private String sectionSpecUniqueId;
-	
+	private transient CommonsMultipartFile file = null;
 	private boolean ignoreValidation;
 	
 	private List<Map<String,String>> media;
@@ -122,9 +124,6 @@ public class FormSectionField implements Serializable {
 	public void setFieldValue(String fieldValue) {
 		this.fieldValue = fieldValue;
 
-	}
-	public int getFieldType() {
-		return fieldType;
 	}
 
 	@JsonProperty(access = Access.WRITE_ONLY)
@@ -431,7 +430,10 @@ public class FormSectionField implements Serializable {
 		this.media = media;
 	}
 
-	
+	@JsonIgnore
+	public CommonsMultipartFile getFile() {
+		return file;
+	}
 	
 	
 }

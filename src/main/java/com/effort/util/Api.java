@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -36,6 +37,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.time.DateUtils;
+import org.apache.commons.validator.routines.DateValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.json.JsonParseException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -64,7 +66,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-@Component
+
 public class Api {
 	
 	
@@ -76,6 +78,7 @@ public class Api {
 		UTC_DATETIME_TO_DATETIME_DISPLAY_FORMAT,
 		UTC_DATETIME_TO_IST
 		};
+		
 		
 		
 		
@@ -375,13 +378,16 @@ public class Api {
 		
 	
 	
-	public static String getDateTimeFromXsd(String datetimeXsd) {
-		String syncDateFormat = Api.getConvertDateTimesToGivenType(datetimeXsd,DateConversionType.STADARD_TO_XSD,"");
-		Calendar calendar = DatatypeConverter.parseDateTime(syncDateFormat);
-		String datetime = Api.getDateTimeInUTC(calendar);
-		datetime = datetime.substring(0, 19);
-		return datetime;
-	}
+	 public static String getDateTimeFromXsd(String datetimeXsd) {
+	        String syncDateFormat = Api.getConvertDateTimesToGivenType(datetimeXsd, DateConversionType.STADARD_TO_XSD, "");
+	        Instant instant = Instant.parse(syncDateFormat);
+	        Calendar calendar = Calendar.getInstance();
+	        calendar.setTimeInMillis(instant.toEpochMilli());
+	        String datetime = Api.getDateTimeInUTC(calendar);
+	        datetime = datetime.substring(0, 19);
+
+	        return datetime;
+	    }
 	
 	public  static String getConvertDateTimesToGivenType(String value,DateConversionType dateConversionType,String tzo){
 		try {
@@ -620,6 +626,8 @@ public class Api {
 			Date date = calendar.getTime();
 			return getDateTimeInUTC(date);
 		}
+	 
+	 
 	public static String processStringValuesList(List<String> givenvalues) {
 		//List<String> givenvalues = Api.csvToList(value);
 		if (givenvalues != null) {
@@ -888,6 +896,41 @@ public class Api {
 				return format.parse(value);
 			}
 		}
+		
+		public static String toCSVWithSpacesBetween(List<?> list, String fieldName,CsvOptions csvOption){
+			try{
+				if (list != null) {
+					StringBuilder csv = new StringBuilder("");
+					for (Object obj : list) {
+						String value=BeanUtils.getProperty(obj, fieldName);
+							
+						if(CsvOptions.FILTER_NULL_OR_EMPTY==csvOption && Api.isEmptyString(value)){
+							continue;
+						}
+						
+						if (csv.length() > 0) {
+							csv .append(", ");
+						}
+						
+							csv .append(value == null ? "" : value);
+						}
+					return csv.toString();
+				}
+				 else {
+					return null;
+				}
+			}catch(Exception ex){
+				Log.debug(Api.class, "in toCSV", ex);
+				return null;
+			}
+		}
+		public static Calendar toCalendar(Date date) {
+			Calendar calendar = Calendar.getInstance();
+			// calendar.setTimeZone(TimeZone.getTimeZone("GMT"));
+			calendar.setTime(date);
+			return calendar;
+		}
+		
 		public static String toUtcXsd(String date) throws ParseException {
 	        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
 	        try {
@@ -918,22 +961,249 @@ public class Api {
 		return time;
 	}
 	
+	public static Calendar getCalendarNowInUtc() {
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTimeZone(TimeZone.getTimeZone("GMT"));
+		calendar.setTimeInMillis(System.currentTimeMillis());
+		return calendar;
+	}
 
-	/*private static Constants getConstants(){
-		Constants constants = AppContext.getApplicationContext().getBean("Constants",Constants.class);
+	private static Constants getConstants(){
+		Constants constants = AppContext.getApplicationContext().getBean("constants",Constants.class);
 		return constants;
-	}*/
+	}
 	
-	@Autowired
-	private  Constants getConstants;
+	public static String getDateToString(Date date) {
+		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		return format.format(date);
+	}
 	
+	public static Date getDateNowInUtc() {
+		Calendar calendar = getCalendarNowInUtc();
+		long time = calendar.getTimeInMillis();
+		time -= TimeZone.getDefault().getRawOffset();
+		Date date = new Date(time);
+		return date;
+	}
+
+	 public static String getCurrentLocalTime(String tzo,String format){
+		    
+		    Date currentUTC = Api.getDateNowInUtc();
+			String currentUTCTime = Api.getDateToString(currentUTC);
+			
+			String localTime = Api.addTzoAndGetDateTime(currentUTCTime, tzo, format);
+			return localTime;
+	 }
+	 
+	 public static String getDateTimeInTzToUtc(Calendar calendar, String offset) {
+			calendar.add(Calendar.MINUTE, Integer.parseInt(offset));
+			SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			format.setTimeZone(TimeZone.getTimeZone("GMT"));
+			return format.format(calendar.getTime());
+		}
+		
+	 public static boolean isEqualLong(Long long1, Long long2) {
+			if (long1 == null) {
+				if (long2 == null) {
+					return true;
+				} else {
+					return false;
+				}
+			} else {
+				if (long2 == null) {
+					return false;
+				} else {
+					return long1.longValue() == long2.longValue();
+				}
+			}
+		}
+
+	 
+	 public static String getCommaSeperatedStringWithOutFormat(String number) {
+			try {
+
+				if (!Api.isEmptyString(number)) {
+					BigDecimal payment = new BigDecimal(number);
+					NumberFormat n = NumberFormat.getCurrencyInstance();
+					double doublePayment = payment.doubleValue();
+					String s = n.format(doublePayment);
+					return s.substring(s.indexOf('.') + 1, s.length() - 3);
+				} else {
+					return number;
+				}
+			} catch (Exception e) {
+				return number;
+			}
+			
+
+		}
+	 
+	 public static String getTimeZoneDates(String date, String myTimeZone,
+				String employeeTimeZone) {
+
+			try {
+				if ((employeeTimeZone != null && !employeeTimeZone.equalsIgnoreCase("null")) && (myTimeZone != null && !myTimeZone.equalsIgnoreCase("null") )) {
+
+					String myTimeZoneDate = Api.getDateTimeInTz(DatatypeConverter.parseDateTime(date), myTimeZone, 1);
+					/*String myTimeZoneDate = Api.getDateTimeInTz(
+							Api.getCalendar(Api.getDateTimeInUTC(date)), myTimeZone,1);*/
+							/*
+							Api.getDateTimeInTz(
+							Api.getCalendar(Api.getDateTimeInUTC(date)), myTimeZone);*/
+					
+					if(!myTimeZone.equalsIgnoreCase(employeeTimeZone)) {
+						String employeeTimeZoneDate =Api.getDateTimeInTz(DatatypeConverter.parseDateTime(date), employeeTimeZone, 1);
+								/*Api.getDateTimeInTz(
+								Api.getCalendar(Api.getDateTimeInUTC(date)),
+								employeeTimeZone);*/
+						myTimeZoneDate = myTimeZoneDate + " (" + employeeTimeZoneDate + ")";
+					}
+					date = myTimeZoneDate;
+
+				} else if (myTimeZone != null) {
+					/*String myTimeZoneDate = Api.getDateTimeInTz(
+							Api.getCalendar(Api.getDateTimeInUTC(date)), myTimeZone);*/
+					String myTimeZoneDate = Api.getDateTimeInTz(DatatypeConverter.parseDateTime(date), myTimeZone, 1);
+					date = myTimeZoneDate;
+
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			return date;
+		}
+	  public static String getCurrentTimeTz24(){
+//    	return  DateFormatUtils.format(new Date(), "yyyy-MM-dd HH:mm:ss");
+  	  	 Calendar cal = Calendar.getInstance();
+  	  	 cal.add(Calendar.MINUTE, 15);
+  	     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+  	     
+  	     return sdf.format(cal.getTime());
+    }
+	  
+	 public static String toCSV(List<?> list, String fieldName,String valuInCaseNull)
+				throws IllegalArgumentException, IllegalAccessException {
+			if (list != null) {
+				StringBuilder csv = new StringBuilder("");
+				for (Object obj : list) {
+					if (csv.length() > 0) {
+						csv .append(",");
+					}
+
+					if (fieldName == null || fieldName.trim().length() == 0) {
+						csv.append(obj.toString());
+					} else {
+						Object val = getFieldValue(obj, fieldName);
+						csv.append(val == null ? valuInCaseNull : val.toString());
+					}
+				}
+
+				return csv.toString();
+			} else {
+				return null;
+			}
+		}
+		
+		
+		public static String toCSVFromList(List<?> list, String fieldName,String  valueIncaseNull){
+			try{
+				return toCSV(list, fieldName,valueIncaseNull);
+			}catch(Exception ex){
+				
+			}
+			
+			return null;
+		}
+		
+		
+		
+	 public static String trimComma(String string)
+ 	{
+ 		if (!Api.isEmptyString(string) && string.endsWith(",")) 
+			{
+ 			string = string.substring(0, string.length() - 1);
+			}
+			if (!Api.isEmptyString(string) && string.startsWith(",")) 
+			{
+				string = string.substring(1, string.length());
+			}
+			return string;
+ 	}
+
+	 public static String getDateTimeInTzIst(Calendar calendar, String offset) {
+			calendar.add(Calendar.MINUTE, -Integer.parseInt(offset));
+			SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd hh:mm a");
+			format.setTimeZone(TimeZone.getTimeZone("IST"));
+			return format.format(calendar.getTime());
+		}
+		
+	 
+	 public static String replaceAllNewLineChar(String input) {
+			String output = replaceAllSkipNull(input, "\n", " ");
+			output = replaceAllSkipNull(output, "\r", " ");
+			return output;
+		}
+	 public static String replaceAllSkipNull(String input, String regex,
+				String replacement) {
+			if (input != null) {
+				return input.replaceAll(regex, replacement);
+			} else {
+				return null;
+			}
+		}
+	 
+ public  static void convertDateTimesToGivenType(Object object, String tzo,DateConversionType dateConversionType,String... propertyNames){
+	   
+		 
+		 for (String propertyName : propertyNames) {
+			 Object value;
+			try {
+				value = PropertyUtils.getProperty(object, propertyName);
+				
+				if(value!=null && !Api.isEmptyString(value.toString())){
+				
+					if(dateConversionType==DateConversionType.STADARD_TO_XSD){
+						value=toUtcXsd(value.toString());
+				    	
+				    }else if(dateConversionType==DateConversionType.XSD_TO_STADARD){
+				    	value=getDateTimeFromXsd(value.toString());
+				    }else if(dateConversionType==DateConversionType.DATETIME_TO_UTC_DATETIME_WITH_TZO){
+				    	Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+				    	calendar.setTimeInMillis(getDateTimeInUTC(value.toString()).getTime());
+				    	value=getDateTimeInTzToUtc(calendar, tzo) ;
+				    }else if(dateConversionType==DateConversionType.UTC_DATETIME_TO_DATETIME_WITH_TZO){
+				    	value =getDateTimeInTz24(value.toString(), tzo);
+				    }
+				    else if(dateConversionType==DateConversionType.UTC_DATETIME_TO_DATETIME_DISPLAY_FORMAT){
+				    	Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+				    	calendar.setTimeInMillis(getDateTimeInUTC(value.toString()).getTime());
+				    	value =getDateTimeInTz(calendar, tzo, 1);
+				    }
+				    else if(dateConversionType==DateConversionType.UTC_DATETIME_TO_IST){
+				    	Calendar calendar = Calendar.getInstance();
+				    	calendar.setTimeInMillis(getDateTimeInUTC(value.toString()).getTime());
+				    	value =getDateTimeInTzIst(calendar, tzo);
+				    }
+					PropertyUtils.setProperty(object, propertyName, value);
+		    	  }
+				
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			 
+		}
+	    	  
+     }
+	 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public static Object fromJson(String json, Class class1)
 			throws JsonParseException, JsonMappingException, IOException 
 	{
-		String disableInternFieldNames = getConstants.getDisableInternFieldNamesForJsonObjectMapper();
+		String disableInternFieldNames = getConstants().getDisableInternFieldNamesForJsonObjectMapper();
 		
-		if("true".equalsIgnoreCase(disableInternFieldNames))
+
+		if ("true".equalsIgnoreCase(String.valueOf(disableInternFieldNames).trim())) 
 		{
 			JsonFactory f = new JsonFactory();
 	        f.disable(Feature.INTERN_FIELD_NAMES);
@@ -948,7 +1218,187 @@ public class Api {
         }
 	}
 	
+public static Pattern compilePattern(String expr) {
+		
+		try
+		{
+			return Pattern.compile(expr);
+		}
+		catch(Throwable t)
+		{
+			Log.info(Api.class, "compilePattern() // Invalid Reg Expr. : "+expr, t); 
+		}
+		
+		return null;
+	}
 
+public static String getToday() {
+	String date = "";
+	String month = "";
+	String year = "";
+
+	Calendar currentTime = Calendar.getInstance(TimeZone.getDefault());
+
+	year = ""
+			+ ((currentTime.get(Calendar.YEAR) + "").length() > 1 ? currentTime
+					.get(Calendar.YEAR) : "0"
+					+ currentTime.get(Calendar.YEAR));
+
+	month = ""
+			+ (((currentTime.get(Calendar.MONTH) + 1) + "").length() > 1 ? (currentTime
+					.get(Calendar.MONTH) + 1) : "0"
+					+ (currentTime.get(Calendar.MONTH) + 1));
+
+	date = ""
+			+ ((currentTime.get(Calendar.DAY_OF_MONTH) + "").length() > 1 ? currentTime
+					.get(Calendar.DAY_OF_MONTH) : "0"
+					+ currentTime.get(Calendar.DAY_OF_MONTH));
+
+	return (year + "-" + month + "-" + date);
+}
+
+public static String getOnlyDateToString(Date date) {
+	SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+	return format.format(date);
+}
+
+public static boolean compareTwoDates(String sourceDate , String compareDate )
+{
+	 Date date1 = Api.getDateFromString(sourceDate);
+	 Date date2 = Api.getDateFromString(compareDate);
+	 
+	 if(date1.after(date2) || date1.equals(date2))
+	 {
+		 return true;
+	 }
+	 return false;
+}
+
+public static boolean evaluateDateRestriction(String dateOfBirth, Integer minAge, Integer maxAge) {
+
+	String today = Api.getToday();
+	boolean restrictDate = true;
+	
+	String formatt = "yyyy-MM-dd";
+	Date date1=DateValidator.getInstance().validate(dateOfBirth, "yyyy-MM-dd");
+	Date date2=DateValidator.getInstance().validate(dateOfBirth, "dd-MM-yyyy");
+	Date date3=DateValidator.getInstance().validate(dateOfBirth, "MM/dd/yyyy");
+	Date date4=DateValidator.getInstance().validate(dateOfBirth, "dd/MM/yyyy");
+	if(date1 != null) {
+		formatt = "yyyy-MM-dd";
+	}else if(date2 != null) {
+		formatt = "dd-MM-yyyy";
+	}else if(date3 != null) {
+		formatt = "MM/dd/yyyy";
+	}else if(date4 != null) {
+		formatt = "dd/MM/yyyy";
+	}
+	
+	SimpleDateFormat sdf = new SimpleDateFormat(formatt);
+	
+	
+
+	try {
+
+		Date d1 = sdf.parse(dateOfBirth);
+		
+		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+		String dob = format.format(d1);
+		
+		if(minAge != null && minAge > 0 && maxAge != null && maxAge > 0) {
+			Calendar calendar = Api.getCalendar(d1);
+			calendar.add(Calendar.YEAR, minAge);
+			Date dateNew = calendar.getTime();
+			String minAgeDate = Api.getOnlyDateToString(dateNew);
+			
+			Calendar maxcalendar = Api.getCalendar(d1);
+			maxcalendar.add(Calendar.YEAR, maxAge+1);
+			Date maxcalendarDate = maxcalendar.getTime();
+			String maxAgeDate = Api.getOnlyDateToString(maxcalendarDate);
+			
+			
+			if(Api.compareTwoDates(today,minAgeDate) && Api.compareTwoDates(maxAgeDate,today) && !maxAgeDate.equals(today)) {
+				restrictDate = false;
+			}
+		}else if(minAge != null && minAge > 0) {
+			Calendar calendar = Api.getCalendar(d1);
+			calendar.add(Calendar.YEAR, minAge);
+			Date dateNew = calendar.getTime();
+			String minAgeDate = Api.getOnlyDateToString(dateNew);
+			
+			if(Api.compareTwoDates(today,minAgeDate)) {
+				restrictDate = false;
+			}
+		}else if(maxAge != null && maxAge > 0) {
+			Calendar maxcalendar = Api.getCalendar(d1);
+			maxcalendar.add(Calendar.YEAR, maxAge+1);
+			Date maxcalendarDate = maxcalendar.getTime();
+			String maxAgeDate = Api.getOnlyDateToString(maxcalendarDate);
+			if(Api.compareTwoDates(dob,today) && !dob.equals(today)) {
+				restrictDate = true;
+			}else if(Api.compareTwoDates(maxAgeDate,today) && !maxAgeDate.equals(today)) {
+				restrictDate = false;
+			}
+		}
+		
+		return restrictDate;
+	} catch (ParseException e) {
+		e.printStackTrace();
+		return false;
+	}
+}
+	
+	public static boolean isValueMatchForRegEx(String value,
+			String regExpr) {
+		try
+		{
+			Pattern pattern = Api.compilePattern(regExpr);
+			Matcher matcher = pattern.matcher(value);
+			if(matcher.matches())
+			{
+				Log.info(Api.class, "isValueMatchForRegEx() // value is matched. value : "+value+" & regExpr : "+regExpr);
+				return true;
+			}
+		}
+		catch(Throwable t)
+		{
+			Log.info(Api.class, "isValueMatchForRegEx() // Error Occured for value : "+value+" & regExpr : "+regExpr, t); 
+		}
+		Log.info(Api.class, "isValueMatchForRegEx() // value is not matched. value : "+value+" & regExpr : "+regExpr);
+		return false;
+	}
+	
+	
+	public static String getTimeZoneDatesInLTZ(String date, String myTimeZone,
+			String employeeTimeZone) {
+
+		try {
+			if ((employeeTimeZone != null && !employeeTimeZone.equalsIgnoreCase("null")) && (myTimeZone != null && !myTimeZone.equalsIgnoreCase("null") )) {
+
+				String myTimeZoneDate = Api.getDateTimeInTz(Api.getCalendar(Api.getDateTimeInUTC(date)), myTimeZone, 1);
+
+				
+				if(!myTimeZone.equalsIgnoreCase(employeeTimeZone)) {
+					String employeeTimeZoneDate =Api.getDateTimeInTz(Api.getCalendar(Api.getDateTimeInUTC(date)), employeeTimeZone, 1);
+							
+					myTimeZoneDate = myTimeZoneDate + " (" + employeeTimeZoneDate + ")";
+				}
+				date = myTimeZoneDate;
+
+			} else if (myTimeZone != null) {
+				String myTimeZoneDate = Api.getDateTimeInTz(Api.getCalendar(Api.getDateTimeInUTC(date)), myTimeZone, 1);
+				date = myTimeZoneDate;
+
+			}else if (employeeTimeZone != null && !employeeTimeZone.equalsIgnoreCase("null")){
+				String myTimeZoneDate = Api.getDateTimeInTz(Api.getCalendar(Api.getDateTimeInUTC(date)), employeeTimeZone, 1);
+				date = myTimeZoneDate;
+			}
+		} catch (Exception e) {
+		//	e.printStackTrace();
+		}
+
+		return date;
+	}
 	public static String toCSV(List<?> list) {
 		if (list != null) {
 			StringBuilder csv = new StringBuilder("");
@@ -973,7 +1423,7 @@ public class Api {
 	JsonMappingException, IOException 
 			{
 			
-			String disableInternFieldNames = constants.getDisableInternFieldNamesForJsonObjectMapper();
+			String disableInternFieldNames = getConstants().getDisableInternFieldNamesForJsonObjectMapper();
 			if("true".equalsIgnoreCase(disableInternFieldNames))
 			{
 				JsonFactory f = new JsonFactory();
@@ -1270,6 +1720,7 @@ public class Api {
  		}
  		return hour+":"+minute;
  	}
+	 
 
 		public static String addTzoAndGetDateTime(String dateTime,String tzo,String format){
 			

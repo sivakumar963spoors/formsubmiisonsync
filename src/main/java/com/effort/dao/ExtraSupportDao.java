@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -19,20 +21,29 @@ import com.effort.entity.CustomerEvent;
 import com.effort.entity.Employee;
 import com.effort.entity.EmployeeGroup;
 import com.effort.entity.Entity;
+import com.effort.entity.EntityField;
 import com.effort.entity.EntitySectionField;
 import com.effort.entity.EntitySectionFieldSpec;
+import com.effort.entity.FieldRestrictCritria;
 import com.effort.entity.FieldSpecFilter;
+import com.effort.entity.FieldSpecRestrictionGroup;
 import com.effort.entity.FieldValidationCritiria;
 import com.effort.entity.FormCleanUpRule;
 import com.effort.entity.FormCustomers;
+import com.effort.entity.FormField;
 import com.effort.entity.FormFieldGroupSpec;
 import com.effort.entity.FormFieldSpec;
 import com.effort.entity.FormFieldsColorDependencyCriterias;
 import com.effort.entity.FormFilteringCritiria;
+import com.effort.entity.FormSectionField;
 import com.effort.entity.FormSectionFieldSpec;
 import com.effort.entity.FormSpec;
+import com.effort.entity.MobileNumberVerification;
 import com.effort.entity.Settings;
 import com.effort.entity.StockFormConfiguration;
+import com.effort.entity.WorkSpec;
+import com.effort.entity.WorkSpecSchedulingConfig;
+import com.effort.entity.Workflow;
 import com.effort.manager.WebExtensionManager;
 import com.effort.settings.Constants;
 import com.effort.sqls.Sqls;
@@ -519,5 +530,186 @@ public List<FormFieldSpec> getFormFieldSpecByFormSpecIdAndFieldType(String formS
 		return jdbcTemplate.query(
 				sql, new BeanPropertyRowMapper<FormFieldSpec>(FormFieldSpec.class));
 	}
+
+
+public void updateOtpGenerationData(MobileNumberVerification mobileNumberVerification, int status) {
+	String sql = Sqls.UPDATE_MOBILE_NUMBER_VERIFICATION;
+	jdbcTemplate.update(sql, new Object[] {Api.getDateTimeInUTC(new Date(System.currentTimeMillis())),status,
+			mobileNumberVerification.getId()});
+	
+}
+
+@SuppressWarnings("deprecation")
+public String getExistedValueAgainstFormSpecAndSectionFieldSpec(FormSectionField formField) {
+	String sql = Sqls.GET_EXISTED_VALUE_AGAINST_FORMID_AND_SECTIONFIELDSPECID;
+	String fieldValue = "";
+	try{
+		fieldValue =  jdbcTemplate.queryForObject(
+				sql, new Object[] {
+						formField.getFormId(),
+						formField.getFormSpecId(),
+						formField.getSectionFieldSpecId(),
+						formField.getInstanceId()
+				},String.class);
+	}catch(Exception e){
+		e.printStackTrace();
+	}
+	return fieldValue;
+}
+
+public WorkSpec getWorkSpecUsingFormSpecUniqueId(String uniqueId) {
+
+	try{
+		return jdbcTemplate
+				.queryForObject(Sqls.GET_WORKSPEC_FROM_FORMSPEC_UNIQUEID,
+						new Object[] { uniqueId },
+						new BeanPropertyRowMapper<WorkSpec>(
+								WorkSpec.class));
+		}
+		catch(Exception e){
+			Log.info(getClass(),"Error in getWorkActionSpec "+e.getMessage());
+			return null;
+		}
+	
+}	
+
+public EntityField getEntityField(Long entityId,Long entitySpecId,Long entityFieldSpecId) {
+			EntityField entityField = null;
+			try{
+				entityField = jdbcTemplate.queryForObject(
+						Sqls.SELETCTT_ENTITY_FIELD, new Object[] {entityId,entitySpecId,entityFieldSpecId},
+						new BeanPropertyRowMapper<EntityField>(EntityField.class));
+			}catch(EmptyResultDataAccessException e){
+				Log.info(getClass(), "no EntityField found for entityId:"+entityId+" entitySpecId: "+entitySpecId+" entityFieldSpecId:"+entityFieldSpecId);
+			}
+
+			return entityField;
+		}
+	  
+
+public WorkSpecSchedulingConfig getWorkSpecSchedulingConfig(Long workSpecId) {
+	WorkSpecSchedulingConfig workSpecSchedulingConfig = null;
+	try {
+		workSpecSchedulingConfig = jdbcTemplate.queryForObject(Sqls.SELECT_WORKSPEC_SCHEDULING_CONFIG,
+				new Object[]{workSpecId}, new BeanPropertyRowMapper<WorkSpecSchedulingConfig>(WorkSpecSchedulingConfig.class));
+	} catch (IncorrectResultSizeDataAccessException ie) {
+		Log.ignore(this.getClass(), ie);
+	} catch (Exception e) {
+		Log.info(this.getClass(), "Exception" , e);
+	}
+	
+	return workSpecSchedulingConfig;
+}
+
+public List<FormFieldGroupSpec> getFormFieldGroupSpecForIn(String formSpecIds) {
+
+	String sql = Sqls.SELECT_FORM_FIELD_GROUP_SPECS_IN.replace(":ids", formSpecIds);
+		List<FormFieldGroupSpec> formFieldGroupSpecs = jdbcTemplate.query(sql,
+				new Object[] {},
+				new BeanPropertyRowMapper<FormFieldGroupSpec>(FormFieldGroupSpec.class));
+
+		return formFieldGroupSpecs;
+}
+public CustomEntitySpec getCustomEntitySpecByFormSpecUniqueId(String uniqueId, Integer companyId) {
+	CustomEntitySpec customEntitySpec = new CustomEntitySpec();
+	try{
+		String sql = Sqls.SELECT_CUSTOM_ENTITY_SPEC_BY_FORM_SPEC_UNIQUE_ID;
+		
+		customEntitySpec = jdbcTemplate.queryForObject(sql,new Object[] {uniqueId,companyId},
+				new BeanPropertyRowMapper<CustomEntitySpec>(CustomEntitySpec.class));
+	}
+	catch(Exception e){
+		Log.info(getClass(), "getCustomEntitySpec() // Exception occured ",e);
+	}
+	return customEntitySpec;
+}
+
+
+ 
+public int modifyCustomEntity(CustomEntity customEntity) {
+
+	return jdbcTemplate.update(
+			Sqls.UPDATE_CUSTOM_ENTITY,
+			new Object[] {
+					customEntity.getCustomEntityNo(),
+					customEntity.getCustomEntityName(),
+					customEntity.getCustomEntityLocation(),
+					customEntity.getClientSideId(),
+					customEntity.getClientCode(),
+					customEntity.getParentCustomEntityId(),
+					customEntity.getModifiedBy(),
+					Api.getDateTimeInUTC(new Date(System.currentTimeMillis())),
+					customEntity.getAssignTo(),
+					customEntity.getLastActivityName(),
+					customEntity.getLastActivityTime(),
+					customEntity.getCustomEntityFieldsUniqueKey(),
+					customEntity.getFormId(),
+					customEntity.getCustomEntityId() 
+				});
+}
+
+public List<FormFilteringCritiria> getFormFilteringCritirias(
+		String formSpecId) {
+	String sql = Sqls.SELECT_FORM_FILTERING_CRITIRIA;
+	List<FormFilteringCritiria> formFilteringCritiria = jdbcTemplate.query(
+			sql, new Object[] { formSpecId },
+			new BeanPropertyRowMapper<FormFilteringCritiria>(
+					FormFilteringCritiria.class));
+	return formFilteringCritiria;
+}
+
+public Workflow getWorkFlowMappedFormEntity(int companyId, String entityId,
+		short entityType) {
+	String sql = Sqls.SELECT_WORKFLOW_FOR_FORMSPEC_UNIQUEID;
+	Workflow workflow = null;
+	try {
+		workflow = jdbcTemplate.queryForObject(sql, new Object[]{companyId, entityType, entityId} , new BeanPropertyRowMapper<Workflow>(Workflow.class));
+	} catch (Exception e) {
+		Log.ignore(this.getClass(), entityId);
+	}
+	return workflow;
+}
+
+
+public String getExistedValueAgainstFormSpecAndFieldSpec(FormField formField) {
+	String sql = Sqls.GET_EXISTED_VALUE_AGAINST_FORMID_AND_FORMSPECID;
+
+	String fieldValue = "";
+	try{
+		fieldValue =  jdbcTemplate.queryForObject(
+				sql, new Object[] {
+						formField.getFormId(),
+						formField.getFormSpecId(),
+						formField.getFieldSpecId()
+				},String.class);
+	}catch(Exception e){
+		e.printStackTrace();
+	}
+	return fieldValue;
+}
+
+public List<FieldRestrictCritria> getFieldSpecRestrictedCritiriaOfNotMine(
+		String formSpecId, int type, String groupIds) {
+	if (!Api.isEmptyString(groupIds)) {
+		String sql = "";
+		if (type == FieldSpecRestrictionGroup.FIELD_IS_FORMFIELD) {
+			sql = Sqls.SELECT_FIELDS_WITH_RESTRICTIONS_OF_NOT_MINE.replace(":groupIds",
+					groupIds);
+		} else {
+			sql = Sqls.SELECT_SECTION_FIELLD_RESTRICTIONS_OF_NOT_MINE.replace(
+					":groupIds", groupIds);
+		}
+
+		sql = sql.replace(":formSpecIds", formSpecId);
+		List<FieldRestrictCritria> fieldRestrictCritrias = jdbcTemplate
+				.query(sql, new Object[] {},
+						new BeanPropertyRowMapper<FieldRestrictCritria>(
+								FieldRestrictCritria.class));
+		return fieldRestrictCritrias;
+	}
+
+	return new ArrayList<FieldRestrictCritria>();
+
+}
 
 }

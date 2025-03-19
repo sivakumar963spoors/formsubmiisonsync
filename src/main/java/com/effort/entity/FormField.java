@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
+import org.springframework.web.multipart.MultipartFile;
 
 import com.effort.util.Api;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -94,6 +94,10 @@ public class FormField implements Serializable,Cloneable {
 	private String migrationModifiedTime;
 	private boolean skipDateTimeFields;
 	
+	
+	// @Transient
+    private transient MultipartFile file = null;
+    
 	private List<Map<String,String>> media;
 
 	public int getIdentifier() {
@@ -630,5 +634,8 @@ public class FormField implements Serializable,Cloneable {
 	
 	
 	
-	
+	@JsonIgnore
+	public MultipartFile getFile() {
+		return file;
+	}
 }

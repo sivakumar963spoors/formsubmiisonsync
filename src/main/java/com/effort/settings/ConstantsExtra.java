@@ -27,8 +27,9 @@ public class ConstantsExtra {
 	private String imeiBasedProvisioningKey;
 	private boolean imeiBasedProvisioning;
 	private String enableActivityLocationToResolveAddressKey;
-	
-	
+	private long global_company_skeleton_custom_entity_last_activity_name_field_spec_id;
+	private long global_company_skeleton_custom_entity_last_activity_time_field_spec_id;
+	private Long skeletonWorkStateTypeFieldSpecId;
 	public boolean isAsynchronousCustomEntityProcess() {
 		return asynchronousCustomEntityProcess;
 	}
@@ -76,6 +77,17 @@ public class ConstantsExtra {
 	}
 	public String getEnableActivityLocationToResolveAddressKey() {
 		return enableActivityLocationToResolveAddressKey;
+	}
+	public long getGlobal_company_skeleton_custom_entity_last_activity_name_field_spec_id() {
+		return global_company_skeleton_custom_entity_last_activity_name_field_spec_id;
+	}
+
+	public long getGlobal_company_skeleton_custom_entity_last_activity_time_field_spec_id() {
+		return global_company_skeleton_custom_entity_last_activity_time_field_spec_id;
+	}
+	
+	public Long getSkeletonWorkStateTypeFieldSpecId() {
+		return skeletonWorkStateTypeFieldSpecId;
 	}
 	
 }
