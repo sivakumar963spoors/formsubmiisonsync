@@ -35,6 +35,15 @@ public class EmployeeDao {
 		}
 		return employee;
 	}
+	
+	public void updateEmployeeDeviceStartAndStopWorkTimes(long empId, String startTime, String stopTime) {
+		try {
+			jdbcTemplate.update(Sqls.UPDATE_EMPLOYEE_DEVICE_START_STOP_WORK_TIMES,
+					new Object[] { startTime, stopTime, empId });
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
 	
 	

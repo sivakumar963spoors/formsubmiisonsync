@@ -1,8 +1,6 @@
 package com.effort.entity;
 
-
 import java.util.List;
-
 
 
 
@@ -67,11 +65,13 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 	private int editable = 1;
 	@JsonProperty(access = Access.WRITE_ONLY)
 	private String listFilteringCritiria;// this json for ListFilteringCritiria
-	
+	@JsonProperty(access = Access.WRITE_ONLY)
+	private List<ListFilteringCritiria> listFilteringCritirias;
 	@JsonProperty(access = Access.WRITE_ONLY)
 	private String visibilityDependencyCriteria;// this is json for
 												// ListFilteringCritiria
-
+	@JsonProperty(access = Access.WRITE_ONLY)
+	private List<VisibilityDependencyCriteria> visibilityDependencyCriterias;
 	@JsonProperty(access = Access.WRITE_ONLY)
 	private int visbleOnVisibilityCondition = 1;
 	private int formFieldIdentifier = 0;
@@ -86,7 +86,8 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 	private String isRemoteFieldError;
 	@JsonProperty(access = Access.WRITE_ONLY)
 	private String customerFilteringCritiria;// this json for CustomerFilteringCritiria
-	
+	@JsonProperty(access = Access.WRITE_ONLY)
+	private List<CustomerFilteringCritiria> customerFilteringCritirias;
 	
 	private String backgroundColorDependencyCritiria;
 	
@@ -114,7 +115,8 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 	private String validationErrorMsg;
 	@JsonProperty(access = Access.WRITE_ONLY)
 	private String fieldValidationCritiria;// this json for FieldValidationCritiria
-
+	@JsonProperty(access = Access.WRITE_ONLY)
+	private List<FieldValidationCritiria> fieldValidationCritirias;
 	/*Date: 2016-06-20
 	*Change Purpose:Saving imagesize and enable imageSize values also(Image max size restriction )
 	*Resource: Deva*/
@@ -151,6 +153,7 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 	private Integer textFieldMultiLineValue;
 	
 	private String formFilteringCritiria;//
+	private List<FormFilteringCritiria> formFilteringCritirias;
 	
 	private boolean uniqueCheck;
 	private Integer otpExpiryTimeInSeconds;
@@ -180,9 +183,10 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 	private boolean dependentDefaultField;
 	
 	private String employeeFilteringCritiria;// this json for EmployeeFilteringCritiria
-
+	private List<EmployeeFilteringCritiria> employeeFilteringCritirias;
 	
 	private String employeeListBasedFilteringCritiria;// this json for EmployeeFilteringCritiria
+	private List<EmployeeFilteringCritiria> employeeListBasedFilteringCritirias;
 	
 	private Long fieldLabelFontId;
 	private Long formFieldEntityId;
@@ -191,6 +195,7 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 	private String displayLable;
 	
     private String entityFilterFunctionFieldsMapping;// this json for EmployeeFilteringCritiria
+//	private List<EntityFilterFunctionFieldsMapping> entityFilterFunctionFieldsMappingList;
 	
 	private boolean functionField;
 	private String functionName;
@@ -214,7 +219,7 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 	private int visibile;
 	private int formFieldVisibility;
 	private String customEntityFilteringCritiria;
-
+	private List<CustomEntityFilteringCritiria> customEntityFilteringCritirias;
 	private Integer enableCommaSeperator = 0;
 	private String currencyFormat = "0";
 	
@@ -230,13 +235,15 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 
 	private Integer status;
 
+//	private transient CommonsMultipartFile staticFieldFile = null;
 	
 	private String staticFieldMediaId;
 	
 	private String staticFieldMediaFileError;
 	
 	private String staticFieldCheckboxError;
-
+	
+//	private transient CommonsMultipartFile staticFieldThumbnailFile = null;
 	
 	private String staticFieldThumbnailMediaId;
 	
@@ -276,11 +283,14 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 	
 	@JsonProperty(access = Access.WRITE_ONLY)
 	private String childCustomerFilteringCritiria;
-
+	@JsonProperty(access = Access.WRITE_ONLY)
+	private List<CustomerFilteringCritiria> childCustomerFilteringCritirias;
+	
 	
 	@JsonProperty(access = Access.WRITE_ONLY)
 	private String customerAutoFilteringCritiria;// this json for CustomerAutoFilteringCritiria
-	
+	@JsonProperty(access = Access.WRITE_ONLY)
+	private List<CustomerAutoFilteringCritiria> customerAutoFilteringCritirias;
 	
 	private Integer showOnlyMappedItemsWhileSelection = 0;
 	private boolean ocrField;
@@ -519,6 +529,14 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 	}
 
 	
+	public List<VisibilityDependencyCriteria> getVisibilityDependencyCriterias() {
+		return visibilityDependencyCriterias;
+	}
+
+	public void setVisibilityDependencyCriterias(
+			List<VisibilityDependencyCriteria> visibilityDependencyCriterias) {
+		this.visibilityDependencyCriterias = visibilityDependencyCriterias;
+	}
 
 	
 	public String getListFilteringCritiria() {
@@ -530,6 +548,14 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 	}
 
 	
+	public List<ListFilteringCritiria> getListFilteringCritirias() {
+		return listFilteringCritirias;
+	}
+
+	public void setListFilteringCritirias(
+			List<ListFilteringCritiria> listFilteringCritirias) {
+		this.listFilteringCritirias = listFilteringCritirias;
+	}
 
 	
 	public String getFieldVisbleRestrictedEmpGrps() {
@@ -696,7 +722,7 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 				+ fieldLabelFontId + ", fieldValueFontId=" + fieldValueFontId + ", created=" + created
 				+ ", displayLable=" + displayLable + ", entityFilterFunctionFieldsMapping="
 				+ entityFilterFunctionFieldsMapping + ", entityFilterFunctionFieldsMappingList="
-				+ entityFilterFunctionFieldsMappingList + ", functionField=" + functionField + ", functionName="
+				+  ", functionField=" + functionField + ", functionName="
 				+ functionName + ", customisedPrefix=" + customisedPrefix + ", readDataFrom=" + readDataFrom
 				+ ", restrictDataFromMobile=" + restrictDataFromMobile + ", groupIdentifier=" + groupIdentifier
 				+ ", identifierForPrintTemplate=" + identifierForPrintTemplate + ", captureForWorkAudit="
@@ -810,6 +836,15 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 	}
 
 	
+	public List<CustomerFilteringCritiria> getCustomerFilteringCritirias() {
+		return customerFilteringCritirias;
+	}
+
+	public void setCustomerFilteringCritirias(
+			List<CustomerFilteringCritiria> customerFilteringCritirias) {
+		this.customerFilteringCritirias = customerFilteringCritirias;
+	}
+
 	public String getFieldTypeExtraForm() {
 		return fieldTypeExtraForm;
 	}
@@ -933,6 +968,14 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 	}
 
 	
+	public List<FieldValidationCritiria> getFieldValidationCritirias() {
+		return fieldValidationCritirias;
+	}
+
+	public void setFieldValidationCritirias(List<FieldValidationCritiria> fieldValidationCritirias) {
+		this.fieldValidationCritirias = fieldValidationCritirias;
+	}
+
 	public void setImageSizeEnabled(Boolean imageSizeEnabled) {
 		if(imageSizeEnabled == null)
 			imageSizeEnabled = false;
@@ -1175,7 +1218,13 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 		this.formFilteringCritiria = formFilteringCritiria;
 	}
 
+	public List<FormFilteringCritiria> getFormFilteringCritirias() {
+		return formFilteringCritirias;
+	}
 
+	public void setFormFilteringCritirias(List<FormFilteringCritiria> formFilteringCritirias) {
+		this.formFilteringCritirias = formFilteringCritirias;
+	}
 
 	public boolean isUniqueCheck() {
 		return uniqueCheck;
@@ -1321,6 +1370,14 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 		this.employeeFilteringCritiria = employeeFilteringCritiria;
 	}
 
+	public List<EmployeeFilteringCritiria> getEmployeeFilteringCritirias() {
+		return employeeFilteringCritirias;
+	}
+
+	public void setEmployeeFilteringCritirias(List<EmployeeFilteringCritiria> employeeFilteringCritirias) {
+		this.employeeFilteringCritirias = employeeFilteringCritirias;
+	}
+
 	public Long getFieldLabelFontId() {
 		return fieldLabelFontId;
 	}
@@ -1355,7 +1412,14 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 		this.entityFilterFunctionFieldsMapping = entityFilterFunctionFieldsMapping;
 	}
 
-	
+	/*public List<EntityFilterFunctionFieldsMapping> getEntityFilterFunctionFieldsMappingList() {
+		return entityFilterFunctionFieldsMappingList;
+	}
+
+	public void setEntityFilterFunctionFieldsMappingList(
+			List<EntityFilterFunctionFieldsMapping> entityFilterFunctionFieldsMappingList) {
+		this.entityFilterFunctionFieldsMappingList = entityFilterFunctionFieldsMappingList;
+	}*/
 	public boolean isFunctionField() {
 		return functionField;
 	}
@@ -1485,7 +1549,13 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 		this.customEntityFilteringCritiria = customEntityFilteringCritiria;
 	}
 
-	
+	public List<CustomEntityFilteringCritiria> getCustomEntityFilteringCritirias() {
+		return customEntityFilteringCritirias;
+	}
+
+	public void setCustomEntityFilteringCritirias(List<CustomEntityFilteringCritiria> customEntityFilteringCritirias) {
+		this.customEntityFilteringCritirias = customEntityFilteringCritirias;
+	}
 		
 	public String getCurrencyFormat() {
 		return currencyFormat;
@@ -1538,7 +1608,14 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 			this.staticField = staticField;
 		}
 	}
-
+/*	@JsonIgnore
+	public CommonsMultipartFile getStaticFieldFile() {
+		return staticFieldFile;
+	}
+	@JsonIgnore
+	public void setStaticFieldFile(CommonsMultipartFile staticFieldFile) {
+		this.staticFieldFile = staticFieldFile;
+	}*/
 
 	public String getStaticFieldMediaId() {
 		return staticFieldMediaId;
@@ -1564,7 +1641,13 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 		this.staticFieldCheckboxError = staticFieldCheckboxError;
 	}
 
+/*	public CommonsMultipartFile getStaticFieldThumbnailFile() {
+		return staticFieldThumbnailFile;
+	}
 
+	public void setStaticFieldThumbnailFile(CommonsMultipartFile staticFieldThumbnailFile) {
+		this.staticFieldThumbnailFile = staticFieldThumbnailFile;
+	}*/
 
 	public String getStaticFieldThumbnailMediaId() {
 		return staticFieldThumbnailMediaId;
@@ -1654,7 +1737,14 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 		this.employeeListBasedFilteringCritiria = employeeListBasedFilteringCritiria;
 	}
 
-	
+	public List<EmployeeFilteringCritiria> getEmployeeListBasedFilteringCritirias() {
+		return employeeListBasedFilteringCritirias;
+	}
+
+	public void setEmployeeListBasedFilteringCritirias(
+			List<EmployeeFilteringCritiria> employeeListBasedFilteringCritirias) {
+		this.employeeListBasedFilteringCritirias = employeeListBasedFilteringCritirias;
+	}
 	public Integer getRestrictLocationPickCondition() {
 		return restrictLocationPickCondition;
 	}
@@ -1749,6 +1839,14 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 		this.childCustomerFilteringCritiria = childCustomerFilteringCritiria;
 	}
 
+	public List<CustomerFilteringCritiria> getChildCustomerFilteringCritirias() {
+		return childCustomerFilteringCritirias;
+	}
+
+	public void setChildCustomerFilteringCritirias(List<CustomerFilteringCritiria> childCustomerFilteringCritirias) {
+		this.childCustomerFilteringCritirias = childCustomerFilteringCritirias;
+	}
+
 	public String getCustomerAutoFilteringCritiria() {
 		return customerAutoFilteringCritiria;
 	}
@@ -1757,6 +1855,13 @@ public class FormFieldSpec extends FormFieldSpecMaster {
 		this.customerAutoFilteringCritiria = customerAutoFilteringCritiria;
 	}
 
+	public List<CustomerAutoFilteringCritiria> getCustomerAutoFilteringCritirias() {
+		return customerAutoFilteringCritirias;
+	}
+
+	public void setCustomerAutoFilteringCritirias(List<CustomerAutoFilteringCritiria> customerAutoFilteringCritirias) {
+		this.customerAutoFilteringCritirias = customerAutoFilteringCritirias;
+	}
 
 	public Integer getShowOnlyMappedItemsWhileSelection() {
 		return showOnlyMappedItemsWhileSelection;

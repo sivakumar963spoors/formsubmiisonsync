@@ -22,6 +22,7 @@ import com.effort.dao.ExtraSupportDao;
 import com.effort.dao.WorkFlowExtraDao;
 import com.effort.entity.AuditFormFields;
 import com.effort.entity.AuditFormSectionFields;
+import com.effort.entity.CompanyFont;
 import com.effort.entity.CompanyRestApis;
 import com.effort.entity.CustomEntity;
 import com.effort.entity.CustomEntityOnDemandMapping;
@@ -33,12 +34,18 @@ import com.effort.entity.Employee;
 import com.effort.entity.EmployeeGroup;
 import com.effort.entity.EmployeeRequisitionJmsMessageStatus;
 import com.effort.entity.EmployeeStaticField;
+import com.effort.entity.EntityField;
+import com.effort.entity.ExtraProperties;
 import com.effort.entity.Form;
+import com.effort.entity.FormAndField;
 import com.effort.entity.FormField;
 import com.effort.entity.FormFieldSpec;
+import com.effort.entity.FormSectionField;
 import com.effort.entity.FormSectionFieldSpec;
+import com.effort.entity.FormSectionSpec;
 import com.effort.entity.FormSpec;
 import com.effort.entity.JmsMessage;
+import com.effort.entity.Settings;
 import com.effort.entity.SystemRejectedFormsLog;
 import com.effort.entity.WebUser;
 import com.effort.entity.WorkFlowFormStatus;
@@ -92,6 +99,8 @@ public class WebAdditionalSupportManager {
 	
 	@Autowired
 	private ExtraSupportAdditionalDao extraSupportAdditionalDao;
+	
+	
 	
 	private WebExtensionManager getWebExtensionManager(){
 		WebExtensionManager webExtensionManager = AppContext.getApplicationContext().getBean("webExtensionManager",WebExtensionManager.class);
@@ -586,7 +595,149 @@ public class WebAdditionalSupportManager {
 				}
 			}
 		 
+		 public CustomEntity getCustomEntity(FormAndField formAndField, long empId,
+					FormSpec formSpec,Integer companyId,ExtraProperties extraProperties){
+					
+		            if(formSpec.getPurpose() !=  FormSpec.PURPOUSE_CUSTOM_ENTITY){
+		            	return null;
+		            }
+		            CustomEntity customEntity = new CustomEntity();
+					String customEntityNo = webManager.getWorkFieldValueForGivenSkeleton(formAndField,constants.getGlobal_company_skeleton_entityId_field_spec_id());
+		            String customEntityName = webManager.getWorkFieldValueForGivenSkeleton(formAndField,constants.getGlobal_company_skeleton_entityName_field_spec_id());
+		            String customEntityLocation = webManager.getWorkFieldValueForGivenSkeleton(formAndField,constants.getGlobal_company_skeleton_location_field_spec_id());
+		            String customEntityLastActivityName = webManager.getWorkFieldValueForGivenSkeleton(formAndField,constantsExtra.getGlobal_company_skeleton_custom_entity_last_activity_name_field_spec_id());
+		            String customEntityLastActivityTime = webManager.getWorkFieldValueForGivenSkeleton(formAndField,constantsExtra.getGlobal_company_skeleton_custom_entity_last_activity_time_field_spec_id());
+		            CustomEntitySpec customEntitySpec = getCustomEntitySpecByFormSpecUniqueId(formSpec.getUniqueId(),companyId);
+		           
+		            customEntity.setCustomEntityNo(customEntityNo);
+		            customEntity.setCustomEntityName(customEntityName);
+		            customEntity.setCustomEntityLocation(customEntityLocation);
+		            customEntity.setLastActivityName(customEntityLastActivityName);
+		            customEntity.setLastActivityTime(customEntityLastActivityTime);
+		            customEntity.setCustomEntitySpecId(customEntitySpec.getCustomEntitySpecId());
+		            customEntity.setCreatedBy(empId);
+		            customEntity.setModifiedBy(empId);
+		            customEntity.setFormId(formAndField.getFormId());
+		            customEntity.setCompanyId(formSpec.getCompanyId());
+		            if(Api.isNumber(formAndField.getCustomEntityId())){
+		            	customEntity.setCustomEntityId(Long.parseLong(formAndField.getCustomEntityId()));
+		            }
+		            if(extraProperties != null){
+			            customEntity.setClientCode(extraProperties.getClientCode());
+			            customEntity.setClientSideId(extraProperties.getClientSideId());
+		            }
+		            customEntity.setCustomEntityFieldsUniqueKey(formAndField.getCustomEntityFieldsUniqueKey());
+					return customEntity;
+					
+			}
 		 
+
+			public CustomEntitySpec getCustomEntitySpecByFormSpecUniqueId(String uniqueId, Integer companyId) {
+				
+				return extraSupportDao.getCustomEntitySpecByFormSpecUniqueId(uniqueId,companyId);
+			}
+		 @SuppressWarnings("unchecked")
+			public String getWorkFieldValueForGivenUniqueId(FormAndField formAndField, String tvsZoneUserFormFieldUniqueId, Long skeletonFieldSpecId) {
+				Map<Long, FormField> fielSpecIdAndFieldMap = new HashMap<Long, FormField>();
+				Map<Long, FormFieldSpec> uniqueIdAndFormFieldSpecMap = new HashMap<Long, FormFieldSpec>();
+				Map<Long, FormFieldSpec> skeletonFieldSpecIdAndFormFieldSpecMap = new HashMap<Long, FormFieldSpec>();
+
+				List<FormField> formFields = formAndField.getFields();
+
+				// FormSpec formSpec=getFormSpec(""+formAndField.getFormSpecId());
+				List<FormFieldSpec> formFieldSpecs = webManager.getFormFieldSpecs(formAndField
+						.getFormSpecId());
+
+				fielSpecIdAndFieldMap = (Map) Api.getMapFromList(formFields,"fieldSpecId");
+				
+				uniqueIdAndFormFieldSpecMap = (Map) Api.getMapFromList(formFieldSpecs, "uniqueId");
+				
+				skeletonFieldSpecIdAndFormFieldSpecMap = (Map) Api.getMapFromList(formFieldSpecs, "skeletonFormFieldSpecId");
+				
+				FormFieldSpec formFieldSpec = uniqueIdAndFormFieldSpecMap.get(tvsZoneUserFormFieldUniqueId);
+				
+				FormFieldSpec employeeFormFieldSpec = skeletonFieldSpecIdAndFormFieldSpecMap.get(skeletonFieldSpecId);
+
+				FormField formField = fielSpecIdAndFieldMap.get(formFieldSpec.getFieldSpecId());
+				
+				FormField employeeFormField = fielSpecIdAndFieldMap.get(employeeFormFieldSpec.getFieldSpecId());
+				String empId =null;
+				
+				if (formField != null) {
+					if(!Api.isEmptyString(formField.getFieldValue()))
+					{
+						EntityField entityField = extraSupportDao.getEntityField(Long.parseLong(formField.getFieldValue()),constants.getTvsZoneEmployeesEntitySpecId(),constants.getTvsZoneEmployeesEmployeeNameEntityFieldSpecId());
+						if(entityField != null)
+						{
+							empId = entityField.getFieldValue();
+							if(employeeFormField != null)
+							{
+								employeeFormField.setFieldValue(empId);
+							}
+							else
+							{
+								FormField empFormField = new FormField();
+								empFormField.setFormId(formAndField.getFormId());
+								empFormField.setFormSpecId(formAndField.getFormSpecId());
+								empFormField.setFieldSpecId(employeeFormFieldSpec.getFieldSpecId());
+								empFormField.setFieldValue(empId);
+								formAndField.getFields().add(empFormField);
+							}
+							return empId;
+						}
+					}
+				}
+				
+				return null;
+			}
+			
+		 
+		 
+		 public void generateGuidForFields(List<FormFieldSpec> formFieldSpecs, List<FormSectionSpec> formSectionSpecs,
+					FormAndField formAndField, int formSpecPurpose) {
+				
+				
+				if(formAndField != null && (formSpecPurpose == -1 || formSpecPurpose == 0)) {
+					List<FormField> formFields = formAndField.getFields();
+					List<FormSectionField> formSectionFields = formAndField.getSectionFields();
+					if (formFields != null) {
+						Map<Long, FormFieldSpec> formFieldSpecMap = new HashMap<Long, FormFieldSpec>();
+						for (FormFieldSpec formFieldSpec : formFieldSpecs) {
+							formFieldSpecMap.put(formFieldSpec.getFieldSpecId(),formFieldSpec);
+						}
+						for (FormField formField : formFields) {
+							FormFieldSpec formFieldSpec = formFieldSpecMap.get(formField.getFieldSpecId());
+							if (formFieldSpec != null && 
+									formFieldSpec.getFieldType() == Constants.FORM_FIELD_TYPE_TEXT  
+										&& formFieldSpec.getGuidField() == 1) {
+								
+									formField.setFieldValue(Api.generateRandomGuId());
+							}
+						}
+					}
+					if (formSectionFields != null) {
+						Map<Long, FormSectionFieldSpec> formSectionFieldSpecMap = new HashMap<Long, FormSectionFieldSpec>();
+						for (FormSectionSpec formSectionSpec : formSectionSpecs) {
+							List<FormSectionFieldSpec> formSectionFieldSpecs = formSectionSpec.getFormSectionFieldSpecs();
+							for (FormSectionFieldSpec formSectionFieldSpec : formSectionFieldSpecs) {
+								formSectionFieldSpecMap.put(
+										formSectionFieldSpec.getSectionFieldSpecId(),
+										formSectionFieldSpec);
+							}
+						}
+						for (FormSectionField formSectionField : formSectionFields) {
+							FormSectionFieldSpec formSectionFieldSpec = formSectionFieldSpecMap.get(formSectionField.getSectionFieldSpecId());
+							if (formSectionFieldSpec!=null && 
+									formSectionFieldSpec.getFieldType()== Constants.FORM_FIELD_TYPE_TEXT 
+										&&formSectionFieldSpec.getGuidField() == 1) {
+								
+									formSectionField.setFieldValue(Api.generateRandomGuId());
+
+							}
+						}
+					}
+				}
+			}
 		 public void addToResultList(List<String> result, boolean flag)
 			{
 				if(flag)
@@ -869,6 +1020,10 @@ public class WebAdditionalSupportManager {
 						}
 					}
 				}
+			}
+		 
+		 public CompanyFont getCompanyFont(long fontId) {
+				return extraSupportAdditionalDao.getCompanyFont(fontId);
 			}
 		
 }

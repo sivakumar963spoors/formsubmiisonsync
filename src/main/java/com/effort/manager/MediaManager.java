@@ -9,6 +9,8 @@ import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.effort.dao.MediaDao;
+import com.effort.entity.Media;
 import com.effort.settings.Constants;
 import com.effort.settings.ConstantsExtra;
 import com.effort.util.Api;
@@ -21,7 +23,8 @@ public class MediaManager {
 	@Autowired
 	private ConstantsExtra constantsExtra;
 	
-	
+	@Autowired
+	private MediaDao  mediaDao;
 	public Long saveMedia(String mimeType, String extension, String fielStream, long empId, long companyId,
 			boolean safeCheck)
 			throws FileNotFoundException, IOException {

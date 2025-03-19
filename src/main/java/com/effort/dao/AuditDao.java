@@ -30,6 +30,13 @@ public class AuditDao {
 	@Autowired
 	private Constants constants;
 	
+	public void  auditRichTextFormFields(long formId,long auditBy,String time) {
+		  jdbcTemplate.update(Sqls.INSERT_RICH_TEXT_FORMFIELDS_AUDIT_LOG,new Object[]{auditBy,time,formId});
+	}
+	
+	public void  auditRichTextFormSectionFields(long formId,long auditBy,String time) {
+		  jdbcTemplate.update(Sqls.INSERT_RICH_TEXT_FORM_SECTION_FIELDS_AUDIT_LOG,new Object[]{auditBy,time,formId});
+	}
 	public void insertFormListUpdateAuditLogs(Long formId)
 	{
 		String sql = Sqls.INSERT_FORMLIST_UPDATES_AUDIT_LOGS;

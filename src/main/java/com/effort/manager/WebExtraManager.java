@@ -55,6 +55,7 @@ import com.effort.entity.PermissionSet;
 import com.effort.entity.WebUser;
 import com.effort.entity.WorkFlowFormStatus;
 import com.effort.entity.WorkFlowFormStatusHistory;
+import com.effort.entity.WorkSpec;
 import com.effort.entity.Workflow;
 import com.effort.entity.WorkflowStage;
 import com.effort.exception.EffortError;
@@ -935,6 +936,14 @@ public class WebExtraManager {
 			} 
 			return false;
 		}
+	 
+	 public WorkSpec getWorkSpecsForFromSpecUniqueIdAndCompany(String uniqueId,
+				Integer companyId) {
+			
+			return extraDao.getWorkSpecsForFromSpecUniqueIdAndCompany(uniqueId,
+					companyId);
+		}
+	 
 	 public boolean isAccessibleEntity(String entitySpecId,
 				String entityId, WebUser webUser) 
 		{

@@ -35,6 +35,7 @@ import com.effort.entity.FormFieldSpec;
 import com.effort.entity.FormFieldSpecValidValue;
 import com.effort.entity.FormRejectionStagesConfiguration;
 import com.effort.entity.FormSpec;
+import com.effort.entity.JmsMessage;
 import com.effort.entity.Plugin;
 import com.effort.entity.SystemRejectedFormsLog;
 import com.effort.entity.WebUser;
@@ -2309,5 +2310,56 @@ public void populateManagerRank(WorkFlowFormStatus workFlowFormStatus,boolean re
 	
 }
 
+@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Throwable.class)
+public List<WorkFlowFormStatusHistory> getWorkFlowFormStatusHistoriesForPrintTemplate(
+		Long formId, String tzo) {
+
+	List<WorkFlowFormStatusHistory> workflowFormStatusHistories = null;
+	try {
+		workflowFormStatusHistories = workFlowExtraDao
+				.getWorkFlowFormStatusHistories(formId);
+
+		for (WorkFlowFormStatusHistory workFlowFormStatusHistory : workflowFormStatusHistories) {
+
+			workFlowFormStatusHistory.setTzo(tzo);
+
+			
+			if (workFlowFormStatusHistory.getApprovedBy() != null) {
+				
+				if(workFlowFormStatusHistory.getStatus() == 1)
+				{
+					Employee emp =getWebAdditionalSupportExtraManager().getEmployeeBasicDetailsByEmpId(workFlowFormStatusHistory
+									.getApprovedBy() + "");
+					workFlowFormStatusHistory.setApprovedEmp("Approved By : "+emp
+							.getEmpFirstName() + " " + emp.getEmpLastName());
+				}
+				else if(workFlowFormStatusHistory.getStatus() == -1)
+				{
+					if("Rejected by the system".equalsIgnoreCase(workFlowFormStatusHistory.getStatusMessage()))
+					{
+						workFlowFormStatusHistory.setApprovedEmp("Rejected by the system.");
+					}
+					else
+					{
+						Employee emp = webManager
+								.getEmployee(workFlowFormStatusHistory
+										.getApprovedBy() + "");
+						workFlowFormStatusHistory.setApprovedEmp("Rejected By : "+emp
+								.getEmpFirstName() + " " + emp.getEmpLastName());
+					}
+					
+				}
+				
+			}
+
+		}
+
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
+
+	return workflowFormStatusHistories;
+
+}
 
 }

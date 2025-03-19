@@ -1,7 +1,12 @@
 package com.effort.manager;
 
 import java.sql.Date;
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Calendar;
 import java.text.ParseException;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -9,14 +14,22 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.core.MessageCreator;
+import java.util.logging.Logger;
+
+
 import org.apache.commons.beanutils.PropertyUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.ObjectError;
 
 import com.effort.beans.http.request.location.Location;
+import com.effort.beans.http.request.location.LocationDataPostTriggeringEvents;
 import com.effort.beans.http.response.extra.FormMainContainer;
 import com.effort.context.AppContext;
 import com.effort.dao.ActivityLocationDao;
@@ -79,6 +92,7 @@ import com.effort.entity.RichTextFormField;
 import com.effort.entity.RichTextFormSectionField;
 import com.effort.entity.Settings;
 import com.effort.entity.StockFormConfiguration;
+import com.effort.entity.Subscripton;
 import com.effort.entity.Tag;
 import com.effort.entity.VisibilityDependencyCriteria;
 import com.effort.entity.WebUser;
@@ -96,6 +110,11 @@ import com.effort.util.ContextUtils;
 import com.effort.util.Log;
 import com.effort.util.SecurityUtils;
 import com.effort.validators.FormValidator;
+
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
+import jakarta.jms.ObjectMessage;
+import jakarta.jms.Session;
 @Service
 public class MainManager {
 	@Autowired
@@ -134,6 +153,8 @@ public class MainManager {
 	@Autowired
 	private ExtraSupportAdditionalDao extraSupportAdditionalDao;
 	
+	@Autowired
+	private JmsTemplate jmsTemplate;
 
 	@Autowired
 	private ActivityLocationDao activityLocationDao;
@@ -536,7 +557,7 @@ public List<FormSectionField> getSectionFieldsToInsert(String empId,List<FormSec
 					if(getWebAdditionalSupportExtraManager().isActivityLocationEnabledForLocationPush(location.getPurpose())
 							&& getWebAdditionalSupportExtraManager().isCompanyRestApiExistForType(CompanyRestApis.ACTIVITY_BASED_EMPLOYEE_TRACKING_LOCATION, location.getCompanyId()+""))
 					{
-						activityLocationDao.saveActivityBasedLocationsToPushExternalSystem(location, location.getPurpose(), LocationDataPostTriggeringEvents.PROCESSING_STATUS_PENDING);
+					//	activityLocationDao.saveActivityBasedLocationsToPushExternalSystem(location, location.getPurpose(), LocationDataPostTriggeringEvents.PROCESSING_STATUS_PENDING);
 					}
 				}
 				if(location.getPurpose() == Location.FOR_TRACK) {
@@ -608,6 +629,17 @@ public List<FormSectionField> getSectionFieldsToInsert(String empId,List<FormSec
 		return (blocked != null && 
 				(blocked ==  EmployeeAutoDeactivateConfig.ACCESS_TYPE_MOBILE || blocked ==  EmployeeAutoDeactivateConfig.ACCESS_TYPE_BOTH) );
 	}
+	
+	public Subscripton getSubscripton(long companyId) {
+	    Subscripton subscripton = null;
+	    try {
+	      subscripton = extraDao.getActiveSubscripton(companyId);
+	    } catch (Exception e) {
+	      Log.ignore(this.getClass(), e);
+	    }
+	    return subscripton;
+	  }
+ 
 	public boolean isCompanyActive(long companyId) {
 		try {
 			Company company = extraDao.getCompany(companyId);
@@ -1193,7 +1225,7 @@ public List<FormSectionField> getSectionFieldsToInsert(String empId,List<FormSec
 	        }
 			List<String> customerTerritoryIds = extraDao.getCustomerTerritoryIdsFromCustomersInSync(customerIds);
 			
-			if(customerTerritoryIds != null && !customerTerritoryIds.isEmpty())
+			/*if(customerTerritoryIds != null && !customerTerritoryIds.isEmpty())
 			{
 				String customerTerritoryIdsCsv = Api.toCSV(customerTerritoryIds);
 				List<Territory> territoriesForCustomer = extraDao.getTerritories(customerTerritoryIdsCsv);
@@ -1214,7 +1246,7 @@ public List<FormSectionField> getSectionFieldsToInsert(String empId,List<FormSec
 				}
 				
 			}
-			
+			*/
 			
 			
 			
@@ -1541,13 +1573,13 @@ public List<FormSectionField> getSectionFieldsToInsert(String empId,List<FormSec
 						}catch(Exception e){
 							Log.info(this.getClass(), e.toString());
 						}
-						List<PaymentMapping> paymentMappings = extraDao.getPaymentMappingByFormSpec(currFormUniqueIds);
+						/*List<PaymentMapping> paymentMappings = extraDao.getPaymentMappingByFormSpec(currFormUniqueIds);
 						if(paymentMappings != null && !paymentMappings.isEmpty()){
 							Api.convertDateTimesToGivenTypeList(paymentMappings,
 									DateConversionType.STADARD_TO_XSD, "createdTime", "modifiedTime");
 							
 							formMainContainer.getFormSpecContainer().setPaymentMappings(paymentMappings);
-						}
+						}*/
 					}
 				}
 
@@ -1638,14 +1670,14 @@ public List<FormSectionField> getSectionFieldsToInsert(String empId,List<FormSec
 				formMainContainer.getFormWorkflowContainer()
 						.setWorkflowEntityMap(workflowEntityMaps);
 				
-				List<Payment> payments = extraDao.getPaymentsFormIds(formIds);
+				/*List<Payment> payments = extraDao.getPaymentsFormIds(formIds);
 
 				if(payments != null && !payments.isEmpty()){
 					Api.convertDateTimesToGivenTypeList(payments,
 							DateConversionType.STADARD_TO_XSD, "createdTime", "modifiedTime", "serverCreatedTime", "serverModifiedTime");
 					
 					formMainContainer.setPayments(payments);
-				}
+				}*/
 			}
 			formMainContainer.getFormDataContainer().getAdded().addAll(forms);
 			formMainContainer.getFormDataContainer().getFields()
@@ -1952,9 +1984,6 @@ public List<FormSectionField> getSectionFieldsToInsert(String empId,List<FormSec
 				customEntityIdsForForms += customEntityIdsForFormsBuilder.toString();
 				
 			}
-	 
-	
-
 		
 
 		public List<Entity> getExtraEntitesForEntites(List<Entity> entities) {
@@ -1985,70 +2014,76 @@ public List<FormSectionField> getSectionFieldsToInsert(String empId,List<FormSec
 		
 		public void processLocation(Location location) throws ParseException,
 		EffortError {
+			try {
+		        if (!Api.isEmptyString(location.getGpsFixTime())) {
+		            ZonedDateTime zonedDateTime = ZonedDateTime.parse(location.getGpsFixTime(), DateTimeFormatter.ISO_DATE_TIME);
+		            long gpsFixTimeMillis = zonedDateTime.toInstant().toEpochMilli();
+
+		            if (Math.abs(gpsFixTimeMillis) <= getMaxDateAllowed().getTime()) {
+		                // Convert ZonedDateTime to Calendar
+		                Calendar calendar = Calendar.getInstance();
+		                calendar.setTimeInMillis(gpsFixTimeMillis);
+
+		                // Now call getDateTimeInUTC with Calendar
+		                String dateTime = Api.getDateTimeInUTC(calendar);
+		                location.setGpsFixTime(dateTime);
+		            } else {
+		                throw new EffortError(4005, HttpStatus.PRECONDITION_FAILED);
+		            }
+		        }
+		    } catch (IllegalArgumentException e) {
+		        Log.info(this.getClass(), e.toString(), e);
+		        throw new EffortError(4005, HttpStatus.PRECONDITION_FAILED);
+		    }
+
 	try {
-		if (!Api.isEmptyString(location.getGpsFixTime())) {
-			Calendar calendar = DatatypeConverter.parseDateTime(location
-					.getGpsFixTime());
-			if (Math.abs(calendar.getTime().getTime()) <= getMaxDateAllowed()
-					.getTime()) {
-				String dateTime = Api.getDateTimeInUTC(calendar);
-				location.setGpsFixTime(dateTime);
-			} else {
-				throw new EffortError(4005, HttpStatus.PRECONDITION_FAILED);
-			}
-		}
+	    if (!Api.isEmptyString(location.getClientTime())) {
+	        ZonedDateTime zonedDateTime = ZonedDateTime.parse(location.getClientTime(), DateTimeFormatter.ISO_DATE_TIME);
+	        Calendar calendar = Calendar.getInstance();
+	        calendar.setTimeInMillis(zonedDateTime.toInstant().toEpochMilli());
+	        if (Math.abs(calendar.getTimeInMillis()) <= getMaxDateAllowed().getTime()) {
+	            String dateTime = Api.getDateTimeInUTC(calendar);
+	            location.setClientTime(dateTime);
+	        } else {
+	            throw new EffortError(4005, HttpStatus.PRECONDITION_FAILED);
+	        }
+	    }
+	}  catch (IllegalArgumentException e) {
+		Log.info(this.getClass(), e.toString(), e);
+		throw new EffortError(4005, HttpStatus.PRECONDITION_FAILED);
+	}
+
+
+	try {
+	    if (!Api.isEmptyString(location.getClientTime())) {
+	        ZonedDateTime zonedDateTime = ZonedDateTime.parse(location.getClientTime(), DateTimeFormatter.ISO_DATE_TIME);
+	        Calendar calendar = Calendar.getInstance();
+	        calendar.setTimeInMillis(zonedDateTime.toInstant().toEpochMilli());
+	        if (Math.abs(calendar.getTimeInMillis()) <= getMaxDateAllowed().getTime()) {
+	            String dateTime = Api.getDateTimeInUTC(calendar);
+	            location.setClientTime(dateTime);
+	        } else {
+	            throw new EffortError(4005, HttpStatus.PRECONDITION_FAILED);
+	        }
+	    }
 	} catch (IllegalArgumentException e) {
 		Log.info(this.getClass(), e.toString(), e);
 		throw new EffortError(4005, HttpStatus.PRECONDITION_FAILED);
 	}
 
 	try {
-		if (!Api.isEmptyString(location.getCellFixTime())) {
-			Calendar calendar = DatatypeConverter.parseDateTime(location
-					.getCellFixTime());
-			if (Math.abs(calendar.getTime().getTime()) <= getMaxDateAllowed()
-					.getTime()) {
-				String dateTime = Api.getDateTimeInUTC(calendar);
-				location.setCellFixTime(dateTime);
-			} else {
-				throw new EffortError(4005, HttpStatus.PRECONDITION_FAILED);
-			}
-		}
-	} catch (IllegalArgumentException e) {
-		Log.info(this.getClass(), e.toString(), e);
-		throw new EffortError(4005, HttpStatus.PRECONDITION_FAILED);
-	}
-
-	try {
-		if (!Api.isEmptyString(location.getUnknownFixTime())) {
-			Calendar calendar = DatatypeConverter.parseDateTime(location
-					.getUnknownFixTime());
-			if (Math.abs(calendar.getTime().getTime()) <= getMaxDateAllowed()
-					.getTime()) {
-				String dateTime = Api.getDateTimeInUTC(calendar);
-				location.setUnknownFixTime(dateTime);
-			} else {
-				throw new EffortError(4005, HttpStatus.PRECONDITION_FAILED);
-			}
-		}
-	} catch (IllegalArgumentException e) {
-		Log.info(this.getClass(), e.toString(), e);
-		throw new EffortError(4005, HttpStatus.PRECONDITION_FAILED);
-	}
-
-	try {
-		if (!Api.isEmptyString(location.getClientTime())) {
-			Calendar calendar = DatatypeConverter.parseDateTime(location
-					.getClientTime());
-			if (Math.abs(calendar.getTime().getTime()) <= getMaxDateAllowed()
-					.getTime()) {
-				String dateTime = Api.getDateTimeInUTC(calendar);
-				location.setClientTime(dateTime);
-			} else {
-				throw new EffortError(4005, HttpStatus.PRECONDITION_FAILED);
-			}
-		}
-	} catch (IllegalArgumentException e) {
+	    if (!Api.isEmptyString(location.getClientTime())) {
+	        ZonedDateTime zonedDateTime = ZonedDateTime.parse(location.getClientTime(), DateTimeFormatter.ISO_DATE_TIME);
+	        Calendar calendar = Calendar.getInstance();
+	        calendar.setTimeInMillis(zonedDateTime.toInstant().toEpochMilli());
+	        if (Math.abs(calendar.getTimeInMillis()) <= getMaxDateAllowed().getTime()) {
+	            String dateTime = Api.getDateTimeInUTC(calendar);
+	            location.setClientTime(dateTime);
+	        } else {
+	            throw new EffortError(4005, HttpStatus.PRECONDITION_FAILED);
+	        }
+	    }
+	}  catch (IllegalArgumentException e) {
 		Log.info(this.getClass(), e.toString(), e);
 		throw new EffortError(4005, HttpStatus.PRECONDITION_FAILED);
 	}
@@ -2294,4 +2329,14 @@ public List<FormSectionField> getSectionFieldsToInsert(String empId,List<FormSec
 
 		}
 
+		
+		private Date getMaxDateAllowed() {
+			try {
+				return Api.getDateTimeInUTC("2900-01-01 00:00:00");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			return null;
+		}
 }

@@ -12,9 +12,10 @@ import com.effort.entity.FormField;
 import com.effort.entity.FormSectionField;
 import com.effort.entity.RichTextFormField;
 import com.effort.entity.RichTextFormSectionField;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 
-
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class FormDataContainer {
 	private List<Form> added;
 	private List<Form> modified;
@@ -37,6 +38,7 @@ public class FormDataContainer {
 		this.setRichTextFormSectionField(new ArrayList<RichTextFormSectionField>());
 	}
 
+	
 	public List<Form> getAdded() {
 		return added;
 	}

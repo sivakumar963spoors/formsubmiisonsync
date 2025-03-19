@@ -3,6 +3,7 @@ package com.effort.settings;
 import java.io.Serializable;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
@@ -14,6 +15,8 @@ import com.effort.util.Log;
 public class Constants implements Serializable {
 	@Autowired
 	private SettingsDao settingsDao;
+	
+	@Value("${disableInternFieldNamesForJsonObjectMapper}")
 	private String disableInternFieldNamesForJsonObjectMapper;
 	private String gspCropFormSpecUniqueId;
 	private String rootEmpKey;
@@ -82,7 +85,7 @@ public class Constants implements Serializable {
 	private Long service_call_service_rendered_form_spec_id;
 	private Long service_call_payment_collection_and_feedback_form_spec_id;
 	private Long service_call_service_rendered_serviced_product_details_form_section_spec_id;
-
+	private Long system_defined_max_imageSize_for_type_image;
 	private Long service_call_service_rendered_product_form_section_field_spec_id;
 	private Long service_call_service_rendered_part_form_section_field_spec_id;
 	private Long service_call_service_rendered_in_warranty_form_section_field_spec_id;
@@ -142,7 +145,7 @@ public class Constants implements Serializable {
 	private Long sales_payment_collection_payment_particulars_form_field_spec_id;
 	private Long sales_payment_collection_remarks_form_field_spec_id;
 	private Long sales_payment_collection_customer_signature_form_field_spec_id;
-
+	private Long system_defined_min_imageSize_for_type_image;
 	private Long sales_orderform_orderitems_form_section_spec_id;
 	private Long sales_orderform_item_form_section_field_spec_id;
 	private Long sales_orderform_price_unit_form_section_field_spec_id;
@@ -162,11 +165,46 @@ public class Constants implements Serializable {
 	private Long serivce_call_Job_form_specId;
 	private Long service_call_visit_type;
 	
-	 private String latest_client_production_version;
-	 
-		
-
+	private String latest_client_production_version;
+	private String mediaStoragePath; 
+	private String jmsDestination;	
 	
+	private Long tvsDeliveryWorkSpecId;
+	private String tvsZoneUserFormFieldUniqueId;
+	private long tvsZoneEmployeesEntitySpecId;
+	private long tvsZoneEmployeesEmployeeNameEntityFieldSpecId;
+	private Long skeletonWorkEmployeeFieldSpecId;
+	// Form Customer Filter
+	public static final int FORM_CUSTOMER_FILTER_TYPE_CUSTOMERS_MAPPED_TO_ME = 3;
+	public static final int FORM_CUSTOMER_FILTER_TYPE_CUSTOMERS_ME_AND_MY_HIERARCHY = 4;
+	
+	//form field skeleton spec id
+		private Long skeletonWorkNameFieldSpecId;
+		private Long skeletonWorkDescriptionFieldSpecId;
+		private Long skeletonWorkStartsFieldSpecId;
+		private Long skeletonWorkEndsFieldSpecId;
+		private String skeletonCustomerFieldSpecId;
+		private Long skeletonWorkProrityFieldSpecId;
+		private String skeletonCustomerAddressFieldSpecId;
+		private Long skeletonWorkPhoneNumberFieldSpecId;
+		private Long skeletonWorkStreetFieldSpecId;
+		private Long skeletonWorkAreaFieldSpecId;
+		private Long skeletonWorkCityFieldSpecId;
+		private Long skeletonWorkLandMarkFieldSpecId;
+		private Long skeletonWorkCountryFieldSpecId;
+		private Long skeletonWorkStateFieldSpecId;
+		private Long skeletonWorkPincodeFieldSpecId;
+		private Long skeletonWorkLocationFieldSpecId;
+		private String captureLocationInFormUpdateKey;
+		private boolean captureLocationInFormUpdate;
+	
+		
+        public long global_company_custom_entity_form_spec_id;
+		private long global_company_skeleton_entityName_field_spec_id;
+		private long global_company_skeleton_entityId_field_spec_id;
+		private long global_company_skeleton_location_field_spec_id;
+		
+		
 	public static int getChangeTypeDelete() {
 		return CHANGE_TYPE_DELETE;
 	}
@@ -914,4 +952,120 @@ public class Constants implements Serializable {
 	public String getLatest_client_production_version() {
 		return latest_client_production_version;
 	}
+	
+	public Long getSystem_defined_max_imageSize_for_type_image() {
+		return system_defined_max_imageSize_for_type_image;
+	}
+	
+	public Long getSystem_defined_min_imageSize_for_type_image() {
+		return system_defined_min_imageSize_for_type_image;
+	}
+
+	public String getMediaStoragePath() {
+		return mediaStoragePath;
+	}
+	public String getJmsDestination() {
+		return jmsDestination;
+	}
+	
+
+	public long getTvsDeliveryWorkSpecId() {
+		return tvsDeliveryWorkSpecId;
+	}
+
+	public void setTvsDeliveryWorkSpecId(long tvsDeliveryWorkSpecId) {
+		this.tvsDeliveryWorkSpecId = tvsDeliveryWorkSpecId;
+	}
+	public String getTvsZoneUserFormFieldUniqueId() {
+		return tvsZoneUserFormFieldUniqueId;
+	}
+
+	public void setTvsZoneUserFormFieldUniqueId(String tvsZoneUserFormFieldUniqueId) {
+		this.tvsZoneUserFormFieldUniqueId = tvsZoneUserFormFieldUniqueId;
+	}
+	
+	public long getTvsZoneEmployeesEntitySpecId() {
+		return tvsZoneEmployeesEntitySpecId;
+	}
+
+	public void setTvsZoneEmployeesEntitySpecId(long tvsZoneEmployeesEntitySpecId) {
+		this.tvsZoneEmployeesEntitySpecId = tvsZoneEmployeesEntitySpecId;
+	}
+	public long getTvsZoneEmployeesEmployeeNameEntityFieldSpecId() {
+		return tvsZoneEmployeesEmployeeNameEntityFieldSpecId;
+	}
+
+	public void setTvsZoneEmployeesEmployeeNameEntityFieldSpecId(long tvsZoneEmployeesEmployeeNameEntityFieldSpecId) {
+		this.tvsZoneEmployeesEmployeeNameEntityFieldSpecId = tvsZoneEmployeesEmployeeNameEntityFieldSpecId;
+	}
+	public Long getSkeletonWorkEmployeeFieldSpecId() {
+		return skeletonWorkEmployeeFieldSpecId;
+	}
+	public Long getSkeletonWorkStartsFieldSpecId() {
+		return skeletonWorkStartsFieldSpecId;
+	}
+
+	public void setSkeletonWorkStartsFieldSpecId(
+			Long skeletonWorkStartsFieldSpecId) {
+		this.skeletonWorkStartsFieldSpecId = skeletonWorkStartsFieldSpecId;
+	}
+
+	public Long getSkeletonWorkEndsFieldSpecId() {
+		return skeletonWorkEndsFieldSpecId;
+	}
+
+	public void setSkeletonWorkEndsFieldSpecId(Long skeletonWorkEndsFieldSpecId) {
+		this.skeletonWorkEndsFieldSpecId = skeletonWorkEndsFieldSpecId;
+	}
+	
+	public String getCaptureLocationInFormUpdateKey() {
+		return captureLocationInFormUpdateKey;
+	}
+
+	public boolean getCaptureLocationInFormUpdate(long companyId) {
+		try {
+			return Boolean.parseBoolean(settingsDao.getCompanySetting(
+					companyId, getCaptureLocationInFormUpdateKey()));
+		} catch (Exception e) {
+			Log.ignore(this.getClass(), e);
+			return captureLocationInFormUpdate;
+		}
+	}
+	
+	public long getGlobal_company_custom_entity_form_spec_id() {
+		return global_company_custom_entity_form_spec_id;
+	}
+
+	public void setGlobal_company_custom_entity_form_spec_id(long global_company_custom_entity_form_spec_id) {
+		this.global_company_custom_entity_form_spec_id = global_company_custom_entity_form_spec_id;
+	}
+	public long getGlobal_company_skeleton_entityId_field_spec_id() {
+		return global_company_skeleton_entityId_field_spec_id;
+	}
+
+	public void setGlobal_company_skeleton_entityId_field_spec_id(long global_company_skeleton_entityId_field_spec_id) {
+		this.global_company_skeleton_entityId_field_spec_id = global_company_skeleton_entityId_field_spec_id;
+	}
+
+
+	public long getGlobal_company_skeleton_entityName_field_spec_id() {
+		return global_company_skeleton_entityName_field_spec_id;
+	}
+
+	public void setGlobal_company_skeleton_entityName_field_spec_id(
+			long global_company_skeleton_entityName_field_spec_id) {
+		this.global_company_skeleton_entityName_field_spec_id = global_company_skeleton_entityName_field_spec_id;
+	}
+
+	public long getGlobal_company_skeleton_location_field_spec_id() {
+		return global_company_skeleton_location_field_spec_id;
+	}
+
+	public void setGlobal_company_skeleton_location_field_spec_id(long global_company_skeleton_location_field_spec_id) {
+		this.global_company_skeleton_location_field_spec_id = global_company_skeleton_location_field_spec_id;
+	}
+
+
+
 }
+

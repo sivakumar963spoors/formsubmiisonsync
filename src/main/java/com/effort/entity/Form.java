@@ -34,8 +34,6 @@ public class Form implements Cloneable {
 	@JsonProperty(access = Access.READ_ONLY)
 	private Long assignTo;
 	@JsonProperty(access = Access.WRITE_ONLY)
-	private String createdTime;
-	@JsonProperty(access = Access.WRITE_ONLY)
 	private String modifiedTime;
 	private boolean deleted;
 	private String locationId;
@@ -53,7 +51,7 @@ public class Form implements Cloneable {
 	private String locationAddress;
 	private String latitude;
 	private String longitude;
-
+	
 	private String externalId;
 	private String apiUserId;
 
@@ -106,7 +104,8 @@ public class Form implements Cloneable {
 	private String dataPushStatus;
 	private String error;
 	private String formFieldsUniqueKey;
-	
+	@JsonProperty(access = Access.WRITE_ONLY)
+	private String createdTime;
 	
 	public boolean isFormSpecPermission() {
 		return formSpecPermission;
@@ -1066,7 +1065,17 @@ public class Form implements Cloneable {
 	public void setFormFieldsUniqueKey(String formFieldsUniqueKey) {
 		this.formFieldsUniqueKey = formFieldsUniqueKey;
 	}
-	
-	
+	@JsonIgnore
+	public String getCreatedTimeLTZ() {
+		return Api.getTimeZoneDatesInLTZ(createdTime, tzo, filledByTzo + "");
+		/*
+		 * if(!Api.isEmptyString(createdTime) && !Api.isEmptyString(tzo)){ try {
+		 * return
+		 * Api.getDateTimeInTz(Api.getCalendar(Api.getDateTimeInUTC(createdTime
+		 * )), tzo); } catch (ParseException e) { Log.info(this.getClass(),
+		 * e.toString(), e); return createdTime; } } else { return createdTime;
+		 * }
+		 */
+	}
 	
 }
